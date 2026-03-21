@@ -90,18 +90,17 @@ function discoverDirs(root) {
 }
 
 let serviceDirs = [];
-if (paths.length > 0) {
-  serviceDirs = paths.map(p => resolve(p));
-} else if (discover) {
-  log(dim('  Discovering services from current directory...'));
-  serviceDirs = discoverDirs(process.cwd());
+if (discover) {
+  const roots = paths.length > 0 ? paths.map(p => resolve(p)) : [process.cwd()];
+  log(dim(`  Discovering services from ${paths.length > 0 ? paths.join(', ') : 'current directory'}...`));
+  serviceDirs = roots.flatMap(r => discoverDirs(r));
   if (serviceDirs.length === 0) {
-    log(red('  ✖ No service manifests found. Try passing paths explicitly.'));
+    log(red('  ✖ No service manifests found in the search paths.'));
     process.exit(1);
   }
   log(dim(`  Found ${serviceDirs.length} service(s)\n`));
 } else {
-  serviceDirs = [process.cwd()];
+  serviceDirs = paths.length > 0 ? paths.map(p => resolve(p)) : [process.cwd()];
 }
 
 // ── Validate dirs ────────────────────────────────────────────────────────────

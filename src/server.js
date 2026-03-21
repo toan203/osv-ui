@@ -15,11 +15,12 @@ function checkIfOsvUi(port) {
 
 function killPort(port) {
   try {
+    const currentPid = process.pid;
     if (process.platform === 'win32') {
       const out = execSync(`netstat -ano | findstr :${port}`).toString();
       const pids = out.split('\n')
         .map(line => line.trim().split(/\s+/).pop())
-        .filter(pid => pid && /^\d+$/.test(pid));
+        .filter(pid => pid && /^\d+$/.test(pid) && parseInt(pid) !== currentPid);
       [...new Set(pids)].forEach(pid => {
         try { execSync(`taskkill /F /PID ${pid}`); } catch {}
       });
@@ -27,7 +28,9 @@ function killPort(port) {
       const out = execSync(`lsof -t -i :${port}`).toString().trim();
       if (out) {
         out.split('\n').forEach(pid => {
-          try { execSync(`kill -9 ${pid}`); } catch {}
+          if (parseInt(pid) !== currentPid) {
+            try { execSync(`kill -9 ${pid}`); } catch {}
+          }
         });
       }
     }
@@ -36,19 +39,25 @@ function killPort(port) {
 
 export function createServer(payload, port, version) {
   return new Promise((resolve, reject) => {
+    let attempts = 0;
     const start = async (currentPort) => {
+      if (attempts++ > 15) return reject(new Error('Port search limit reached'));
       const app = express();
       app.use((_, res, next) => { res.setHeader('X-App', 'osv-ui'); next(); });
       app.get('/', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.send(buildDashboard(payload, version)); });
       app.get('/api/data', (_, res) => res.json(payload));
-      const server = app.listen(currentPort, '127.0.0.1', () => resolve({ server, port: currentPort }));
+      
+      const server = app.listen(currentPort, '127.0.0.1', () => {
+        resolve({ server, port: currentPort });
+      });
+
       server.on('error', async e => {
         if (e.code === 'EADDRINUSE') {
           const isOurs = await checkIfOsvUi(currentPort);
           if (isOurs) {
             console.log(`  ${currentPort} is busy (osv-ui), auto-recovering...`);
             killPort(currentPort);
-            setTimeout(() => start(currentPort), 500);
+            setTimeout(() => start(currentPort), 600);
           } else {
             console.log(`  ${currentPort} is busy (other service), trying ${currentPort + 1}...`);
             start(currentPort + 1);

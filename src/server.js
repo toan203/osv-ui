@@ -153,6 +153,13 @@ export function buildDashboard({ services, scannedAt, noOsv }, version = '1.0.0'
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
 :root{
   --red:#e53e3e;--orange:#dd6b20;--yellow:#d69e2e;--blue:#3182ce;--green:#38a169;--gray:#718096;
   --bg:#f7fafc;--card:#fff;--border:#e2e8f0;--text:#1a202c;--muted:#718096;--sidebar:220px;

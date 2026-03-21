@@ -1,6 +1,6 @@
 {
   "name": "osv-ui-mcp",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "MCP server for osv-ui — scan projects for CVEs, open visual dashboard, apply fixes with human confirmation",
   "type": "module",
   "bin": {

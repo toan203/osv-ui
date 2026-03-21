@@ -59,9 +59,10 @@ npx osv-ui
 | 📡 **Dữ liệu CVE trực tiếp** | Cung cấp bởi [OSV.dev](https://osv.dev) — cập nhật hàng ngày từ NVD, GitHub Advisory, PyPI Advisory. **Không cần API key.** |
 | 🏢 **Đa dịch vụ (Multi-service)** | Quét toàn bộ monorepo chỉ với một câu lệnh — frontend, backend, workers, ML services |
 | 💊 **Hướng dẫn Fix** | Bảng nâng cấp kiểu Dependabot: phiên bản hiện tại → phiên bản an toàn + lệnh copy 1-click |
+| 🔌 **Built-in REST API** | Tự tạo dashboard bảo mật của riêng bạn với `GET /api/data` hoặc xuất báo cáo qua CLI |
 | 🎯 **Điểm rủi ro (Risk score)** | 0–100 cho mỗi dịch vụ giúp bạn biết cần ưu tiên xử lý đâu trước |
-| 🔍 **Chi tiết CVE** | Click vào bất kỳ dòng nào để xem: điểm CVSS, mô tả, link NVD, link GitHub Advisory |
-| 🔌 **JSON API** | `GET /api/data` — tích hợp vào CI scripts hoặc công cụ báo cáo của riêng bạn |
+| 🔍 **Chi tiết CVE** | Click bất kỳ dòng nào: điểm CVSS, mô tả, link NVD/GitHub Advisory |
+| 🌙 **Chế độ tối (Dark mode)** | Bảo vệ mắt khi audit bảo mật vào ban đêm |
 
 ---
 
@@ -92,12 +93,27 @@ npx osv-ui -d
 }
 ```
 
-**Các tùy chọn:**
 ```
 --discover, -d  Tự động tìm các thư mục chứa file manifest được hỗ trợ
 --port=2003     Sử dụng port tùy chỉnh (mặc định: 2003)
+--json[=file]   Lưu báo cáo dưới dạng JSON (mặc định: osv-report.json)
+--html[=file]   Lưu báo cáo dưới dạng HTML (mặc định: osv-report.html)
 --no-open       Không tự động mở trình duyệt
---offline       Bỏ qua việc truy vấn OSV.dev — chỉ parse các file manifest
+--offline       Bỏ qua truy vấn OSV.dev — chỉ parse các file manifest
+-h, --help      Hiển thị hướng dẫn
+```
+
+### 🔌 Powerful built-in API
+
+`osv-ui` không chỉ là một dashboard; nó là một engine dữ liệu bảo mật.  
+Khi dashboard đang chạy, bạn có thể lấy dữ liệu bảo mật thô của toàn bộ dự án:
+
+```bash
+# Lấy toàn bộ dữ liệu JSON của các dịch vụ
+curl http://localhost:2003/api/data
+
+# Sử dụng trong các script tùy chỉnh của bạn
+curl -s http://localhost:2003/api/data | jq '.[0].vulns'
 ```
 
 ---
@@ -205,14 +221,13 @@ Mọi đóng góp đều được trân trọng. Nếu bạn muốn phát triể
 
 - [x] **Hỗ trợ Go** — parse `go.sum` / `go.mod`
 - [x] **Hỗ trợ Rust** — parse `Cargo.lock`
+- [x] **Xuất báo cáo** — lưu dưới dạng HTML / JSON
+- [x] **Dark mode** — giao diện Dashboard dịu mắt
 - [ ] **Java / Maven** — parse `pom.xml`
-- [ ] **Xuất báo cáo** — lưu dưới dạng HTML / PDF / JSON
 - [ ] **GitHub Actions** — đăng comment so sánh CVE trên PRs
-- [ ] **Xuất SBOM** — định dạng CycloneDX / SPDX (cho Dependency-Track)
+- [ ] **Xuất SBOM** — định dạng CycloneDX / SPDX
 - [ ] **Chế độ theo dõi (Watch mode)** — tự động quét lại khi file manifest thay đổi
-- [ ] **Lịch sử / Xu hướng** — theo dõi số lượng CVE theo thời gian trên từng branch
 - [ ] **Slack / webhook** — thông báo khi có CVE nghiêm trọng mới
-- [ ] **Dark mode** — dành cho giao diện Dashboard
 
 ---
 
@@ -222,7 +237,6 @@ Dự án này được xây dựng bởi cộng đồng. Chào đón mọi cấp
 
 **Các issue phù hợp cho người mới bắt đầu:**
 - Thêm bộ parse cho Java/Maven (`pom.xml`) — làm theo mẫu trong `src/parsers.js`
-- Thêm chế độ tối (dark mode) cho CSS của dashboard
 - Viết unit test cho các bộ parse
 - Cải thiện các trường hợp đặc biệt cho bộ parse Python
 

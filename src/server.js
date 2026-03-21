@@ -1,9 +1,9 @@
 import express from 'express';
 
-export function createServer(payload, port) {
+export function createServer(payload, port, version) {
   return new Promise((resolve, reject) => {
     const app = express();
-    app.get('/', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.send(buildDashboard(payload)); });
+    app.get('/', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.send(buildDashboard(payload, version)); });
     app.get('/api/data', (_, res) => res.json(payload));
     const server = app.listen(port, '127.0.0.1', () => resolve(server));
     server.on('error', e => {
@@ -36,8 +36,8 @@ function compareVersions(v1, v2) {
 function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-const SEV_COLOR = { critical: '#e53e3e', high: '#dd6b20', moderate: '#d69e2e', low: '#3182ce', unknown: '#718096' };
-const SEV_BG    = { critical: '#fff5f5', high: '#fffaf0', moderate: '#fffff0', low: '#ebf8ff', unknown: '#f7fafc' };
+const SEV_COLOR = { critical: 'var(--sev-critical-c)', high: 'var(--sev-high-c)', moderate: 'var(--sev-moderate-c)', low: 'var(--sev-low-c)', unknown: 'var(--sev-unknown-c)' };
+const SEV_BG = { critical: 'var(--sev-critical-bg)', high: 'var(--sev-high-bg)', moderate: 'var(--sev-moderate-bg)', low: 'var(--sev-low-bg)', unknown: 'var(--sev-unknown-bg)' };
 const SEV_ORDER = { critical: 0, high: 1, moderate: 2, low: 3, unknown: 4 };
 
 function sevBadge(s) {
@@ -45,20 +45,20 @@ function sevBadge(s) {
 }
 
 function riskColor(score) {
-  return score >= 50 ? '#e53e3e' : score >= 20 ? '#dd6b20' : score > 0 ? '#d69e2e' : '#38a169';
+  return score >= 50 ? 'var(--red)' : score >= 20 ? 'var(--orange)' : score > 0 ? 'var(--yellow)' : 'var(--green)';
 }
 
-function buildDashboard({ services, scannedAt, noOsv }) {
+export function buildDashboard({ services, scannedAt, noOsv }, version = '1.0.0') {
   const totalVulns = services.reduce((s, r) => s + r.vulns.length, 0);
-  const totalPkgs  = services.reduce((s, r) => s + r.totalPackages, 0);
-  const totalCrit  = services.reduce((s, r) => s + r.severity.critical, 0);
-  const totalHigh  = services.reduce((s, r) => s + r.severity.high, 0);
+  const totalPkgs = services.reduce((s, r) => s + r.totalPackages, 0);
+  const totalCrit = services.reduce((s, r) => s + r.severity.critical, 0);
+  const totalHigh = services.reduce((s, r) => s + r.severity.high, 0);
   const globalRisk = services.reduce((s, r) => s + r.riskScore, 0);
-  const avgRisk    = services.length ? Math.round(globalRisk / services.length) : 0;
+  const avgRisk = services.length ? Math.round(globalRisk / services.length) : 0;
 
   // Build service nav
   const serviceNav = services.map((svc, i) => {
-    const dot = svc.severity.critical > 0 ? '#e53e3e' : svc.vulns.length > 0 ? '#dd6b20' : '#38a169';
+    const dot = svc.severity.critical > 0 ? 'var(--red)' : svc.vulns.length > 0 ? 'var(--orange)' : 'var(--green)';
     const ecoIcons = svc.ecosystems.map(e => {
       if (e === 'npm') return '🟨';
       if (e === 'PyPI') return '🐍';
@@ -69,7 +69,7 @@ function buildDashboard({ services, scannedAt, noOsv }) {
     return `<div class="nav-item ${i === 0 ? 'active' : ''}" onclick="showService(${i}, this)" data-svc="${i}">
       <span style="width:7px;height:7px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(svc.name)}</span>
-      <span style="font-size:10px;color:#a0aec0;flex-shrink:0">${ecoIcons} ${svc.vulns.length}</span>
+      <span style="font-size:10px;color:var(--muted);flex-shrink:0">${ecoIcons} ${svc.vulns.length}</span>
     </div>`;
   }).join('');
 
@@ -77,11 +77,11 @@ function buildDashboard({ services, scannedAt, noOsv }) {
   const servicePanels = services.map((svc, i) => buildServicePanel(svc, i)).join('');
 
   const osvNote = noOsv
-    ? `<div style="background:#fffaf0;border:1px solid #f6e05e;border-radius:6px;padding:8px 12px;font-size:12px;color:#744210;margin-bottom:16px">
+    ? `<div style="background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--warn-c);margin-bottom:16px">
         ⚠ Running in offline mode — CVE data not fetched. Remove <code>--offline</code> to query OSV.dev.
       </div>`
-    : `<div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:6px;padding:8px 12px;font-size:12px;color:#276749;margin-bottom:16px">
-        ✅ CVE data from <a href="https://osv.dev" target="_blank" rel="noopener" style="color:#276749;font-weight:600">OSV.dev</a> — updated daily from NVD · GitHub Advisory · PyPI Advisory · npm Advisory
+    : `<div style="background:var(--success-bg);border:1px solid var(--success-border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--success-c);margin-bottom:16px">
+        ✅ CVE data from <a href="https://osv.dev" target="_blank" rel="noopener" style="color:var(--success-c);font-weight:600">OSV.dev</a> — updated daily from NVD · GitHub Advisory · PyPI Advisory · npm Advisory
       </div>`;
 
   const scanTime = new Date(scannedAt).toLocaleString();
@@ -94,15 +94,81 @@ function buildDashboard({ services, scannedAt, noOsv }) {
 <title>osv-ui — ${services.length} service${services.length > 1 ? 's' : ''}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--red:#e53e3e;--orange:#dd6b20;--yellow:#d69e2e;--blue:#3182ce;--green:#38a169;--gray:#718096;--bg:#f7fafc;--card:#fff;--border:#e2e8f0;--text:#1a202c;--muted:#718096;--sidebar:220px}
+
+:root{
+  --red:#e53e3e;--orange:#dd6b20;--yellow:#d69e2e;--blue:#3182ce;--green:#38a169;--gray:#718096;
+  --bg:#f7fafc;--card:#fff;--border:#e2e8f0;--text:#1a202c;--muted:#718096;--sidebar:220px;
+  
+  --sev-critical-c: #e53e3e; --sev-critical-bg: #fff5f5;
+  --sev-high-c: #dd6b20; --sev-high-bg: #fffaf0;
+  --sev-moderate-c: #d69e2e; --sev-moderate-bg: #fffff0;
+  --sev-low-c: #3182ce; --sev-low-bg: #ebf8ff;
+  --sev-unknown-c: #718096; --sev-unknown-bg: #f7fafc;
+
+  --nav-hover-bg: #f7fafc;
+  --nav-active-bg: #ebf8ff; --nav-active-c: #2b6cb0; --nav-active-border: #3182ce;
+  
+  --success-bg: #f0fff4; --success-border: #9ae6b4; --success-c: #276749;
+  --warn-bg: #fffaf0; --warn-border: #f6e05e; --warn-c: #744210;
+
+  --code-bg: #edf2f7; --code-c: #c53030;
+  
+  --table-head-bg: #f7fafc; --table-row-border: #f0f4f8; --table-row-hover: #fafbfc;
+  --detail-row-bg: #fafbfc;
+  
+  --tag-direct-bg: #e6fffa; --tag-direct-c: #276749;
+  --tag-prod-bg: #f0fff4; --tag-prod-c: #276749;
+  --tag-trans-bg: #edf2f7; --tag-trans-c: #718096;
+  --tag-dev-bg: #ebf8ff; --tag-dev-c: #2b6cb0;
+  
+  --eco-npm-bg: #fffef0; --eco-npm-fg: #7d6608; --eco-npm-border: #f6e05e;
+  --eco-pypi-bg: #f0f9ff; --eco-pypi-fg: #1e4e79; --eco-pypi-border: #bee3f8;
+  --eco-go-bg: #ebf8ff; --eco-go-fg: #2c5282; --eco-go-border: #90cdf4;
+  --eco-rust-bg: #fff5f5; --eco-rust-fg: #9b2c2c; --eco-rust-border: #feb2b2;
+}
+
+html.dark {
+  --red:#fc8181;--orange:#fbd38d;--yellow:#f6e05e;--blue:#63b3ed;--green:#68d391;--gray:#a0aec0;
+  --bg:#1a202c;--card:#2d3748;--border:#4a5568;--text:#f7fafc;--muted:#a0aec0;
+  
+  --sev-critical-c: #fc8181; --sev-critical-bg: #4c1d1d;
+  --sev-high-c: #fbd38d; --sev-high-bg: #5c2c16;
+  --sev-moderate-c: #f6e05e; --sev-moderate-bg: #5f370e;
+  --sev-low-c: #90cdf4; --sev-low-bg: #223c5c;
+  --sev-unknown-c: #e2e8f0; --sev-unknown-bg: #4a5568;
+
+  --nav-hover-bg: #2d3748;
+  --nav-active-bg: #2a4365; --nav-active-c: #90cdf4; --nav-active-border: #63b3ed;
+  
+  --success-bg: #1c4532; --success-border: #22543d; --success-c: #9ae6b4;
+  --warn-bg: #5f370e; --warn-border: #975a16; --warn-c: #fbd38d;
+
+  --code-bg: #1a202c; --code-c: #fc8181;
+  
+  --table-head-bg: #2d3748; --table-row-border: #4a5568; --table-row-hover: #4a5568;
+  --detail-row-bg: #2d3748;
+  
+  --tag-direct-bg: #22543d; --tag-direct-c: #9ae6b4;
+  --tag-prod-bg: #22543d; --tag-prod-c: #9ae6b4;
+  --tag-trans-bg: #4a5568; --tag-trans-c: #e2e8f0;
+  --tag-dev-bg: #2a4365; --tag-dev-c: #90cdf4;
+  
+  --eco-npm-bg: #5f370e; --eco-npm-fg: #fefcbf; --eco-npm-border: #b7791f;
+  --eco-pypi-bg: #2a4365; --eco-pypi-fg: #bee3f8; --eco-pypi-border: #3182ce;
+  --eco-go-bg: #2b6cb0; --eco-go-fg: #ebf8ff; --eco-go-border: #4299e1;
+  --eco-rust-bg: #742a2a; --eco-rust-fg: #fed7d7; --eco-rust-border: #e53e3e;
+}
+
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;font-size:13px}
 a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
-code{font-family:'SF Mono',Menlo,Monaco,monospace;font-size:11px;background:#edf2f7;padding:2px 6px;border-radius:4px;color:#c53030}
+code{font-family:'SF Mono',Menlo,Monaco,monospace;font-size:11px;background:var(--code-bg);padding:2px 6px;border-radius:4px;color:var(--code-c)}
 
 /* Layout */
-.topbar{background:#1a202c;color:#e2e8f0;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px}
+.topbar{background:var(--card);color:var(--text);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px}
 .topbar h1{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap}
-.topbar .meta{font-size:11px;color:#718096;white-space:nowrap}
+.topbar .meta{font-size:11px;color:var(--muted);white-space:nowrap}
+.topbar .meta a{color:var(--muted);text-decoration:none}
+.topbar .meta a:hover{text-decoration:underline}
 .body{display:flex;flex:1;min-height:0}
 .sidebar{width:var(--sidebar);background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
 .sidebar-top{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -112,69 +178,68 @@ code{font-family:'SF Mono',Menlo,Monaco,monospace;font-size:11px;background:#edf
 .gs .v{font-size:18px;font-weight:700;line-height:1}
 .gs .l{font-size:9px;color:var(--muted);margin-top:1px}
 .sidebar-nav{flex:1;overflow-y:auto;padding:8px 0}
-.sidebar-section{font-size:9px;font-weight:700;letter-spacing:.1em;color:#a0aec0;padding:10px 14px 4px;text-transform:uppercase}
+.sidebar-section{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--muted);padding:10px 14px 4px;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:7px;padding:7px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .12s}
-.nav-item:hover{background:#f7fafc;color:var(--text)}
-.nav-item.active{background:#ebf8ff;border-left-color:#3182ce;color:#2b6cb0;font-weight:500}
-.content{flex:1;overflow-y:auto;padding:20px}
-
-/* Service panel */
+.nav-item:hover{background:var(--nav-hover-bg);color:var(--text)}
+.nav-item.active{background:var(--nav-active-bg);border-left-color:var(--nav-active-border);color:var(--nav-active-c);font-weight:500}
+.content{flex:1;padding:24px 32px;overflow-y:auto;background:var(--bg)}
 .svc-panel{display:none}.svc-panel.active{display:block}
 .svc-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .svc-title{font-size:18px;font-weight:700}
 .eco-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid}
 
 /* Stats grid */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px}
-.sc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
-.sc .v{font-size:24px;font-weight:700;line-height:1}
-.sc .l{font-size:10px;color:var(--muted);margin-top:3px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin-bottom:16px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+.sc .v{font-size:24px;font-weight:700;line-height:1;margin-bottom:6px;color:var(--text)}
+.sc .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 
 /* Risk bar */
 .risk-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
 .risk-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px}
-.risk-track{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.risk-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
 .risk-fill{height:100%;border-radius:4px;transition:width .8s ease}
 
 /* Tabs */
 .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
 .tab{padding:8px 16px;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s}
 .tab:hover{color:var(--text)}
-.tab.active{color:#2b6cb0;border-bottom-color:#3182ce}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
 .tab-content{display:none}.tab-content.active{display:block}
 
 /* Filters */
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.fb{padding:4px 12px;border:1px solid var(--border);border-radius:999px;font-size:11px;cursor:pointer;background:var(--card);color:var(--muted);transition:all .12s}
-.fb:hover{border-color:#a0aec0;color:var(--text)}
-.fb.active{background:#3182ce;border-color:#3182ce;color:#fff}
-.search{padding:7px 12px;border:1px solid var(--border);border-radius:7px;font-size:12px;width:100%;max-width:280px;outline:none;margin-bottom:10px}
-.search:focus{border-color:#3182ce;box-shadow:0 0 0 2px #3182ce18}
+.filters-row{display:flex;justify-content:flex-start;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.fb{padding:6px 14px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--card);color:var(--muted);transition:all .12s;line-height:1.2;display:flex;align-items:center;justify-content:center}
+.fb:hover{border-color:var(--muted);color:var(--text)}
+.fb.active{background:var(--blue);border-color:var(--blue);color:var(--card)}
+.search{padding:6px 14px;border:1px solid var(--border);border-radius:8px;font-size:12px;width:100%;max-width:240px;outline:none;background:var(--card);color:var(--text);height:30px;box-sizing:border-box}
+.search:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(49, 130, 206, 0.15)}
 
 /* Table */
 .tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
 table{width:100%;border-collapse:collapse}
-thead{background:#f7fafc}
+thead{background:var(--table-head-bg)}
 th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:9px 12px;border-bottom:1px solid #f0f4f8;vertical-align:top}
+td{padding:9px 12px;border-bottom:1px solid var(--table-row-border);vertical-align:top}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:#fafbfc}
+tr:hover td{background:var(--table-row-hover)}
 
 /* Fix card */
-.fix-card{background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px;margin-top:6px;display:none}
+.fix-card{background:var(--success-bg);border:1px solid var(--success-border);border-radius:8px;padding:12px;margin-top:6px;display:none}
 .fix-card.show{display:block}
-.fix-cmd{font-family:'SF Mono',monospace;font-size:12px;background:#e6fffa;padding:6px 10px;border-radius:5px;color:#276749;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.fix-cmd button{font-size:10px;padding:2px 8px;border:1px solid #9ae6b4;border-radius:4px;background:#fff;cursor:pointer;color:#276749;white-space:nowrap}
-.fix-cmd button:hover{background:#9ae6b4}
+.fix-cmd{font-family:'SF Mono',monospace;font-size:12px;background:var(--tag-direct-bg);padding:6px 10px;border-radius:5px;color:var(--success-c);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fix-cmd button{font-size:10px;padding:2px 8px;border:1px solid var(--success-border);border-radius:4px;background:var(--card);cursor:pointer;color:var(--success-c);white-space:nowrap}
+.fix-cmd button:hover{background:var(--success-border)}
 
 /* Dependabot-style upgrade table */
 .upgrade-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
-.uc-header{background:#f0fff4;border-bottom:1px solid #9ae6b4;padding:10px 14px;font-size:12px;font-weight:600;color:#276749;display:flex;align-items:center;gap:8px}
+.uc-header{background:var(--success-bg);border-bottom:1px solid var(--success-border);padding:10px 14px;font-size:12px;font-weight:600;color:var(--success-c);display:flex;align-items:center;gap:8px}
 
 /* Charts row */
 .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
-.ct{font-size:12px;font-weight:600;margin-bottom:12px}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+.ct{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)}
 .donut-wrap{display:flex;align-items:center;gap:12px}
 .donut-legend{display:flex;flex-direction:column;gap:5px;font-size:11px}
 .leg-item{display:flex;align-items:center;gap:5px}
@@ -186,30 +251,39 @@ tr:hover td{background:#fafbfc}
 .empty .icon{font-size:40px;margin-bottom:8px}
 
 /* Vuln detail expandable row */
-.detail-row{background:#fafbfc;display:none}
+.detail-row{background:var(--detail-row-bg);display:none}
 .detail-row.show{display:table-row}
 .detail-content{padding:10px 14px;font-size:11px;color:var(--muted)}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.detail-item .label{font-size:10px;color:#a0aec0;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
+.detail-item .label{font-size:10px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
 .detail-item .val{font-size:12px;color:var(--text)}
 tr.clickable{cursor:pointer}
-tr.clickable:hover td{background:#f0f4f8}
+tr.clickable:hover td{background:var(--table-row-border)}
 .kofi-button{margin-top:12px;display:inline-block;vertical-align:middle}
-.kofi-link{display:flex;align-items:center;gap:3px;padding:1px 5px;border:1px solid #e2e8f0;border-radius:4px;color:#a0aec0;font-size:8.5px;font-weight:600;transition:all .2s ease;text-decoration:none!important}
-.kofi-link:hover{background:#ed8936;border-color:#ed8936;color:#fff}
+.kofi-link{display:flex;align-items:center;gap:3px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:8.5px;font-weight:600;transition:all .2s ease;text-decoration:none!important}
+.kofi-link:hover{background:#ed8936;border-color:#ed8936;color:var(--card)}
 .kofi-link img{height:10px!important;opacity:0.5;filter:grayscale(1)}
 .kofi-link:hover img{opacity:1;filter:none}
+
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <h1>🔍 osv-ui
-    <span style="font-size:10px;background:#4a5568;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;color:#fff;font-weight:400">v1.0.6</span>
-    <span style="color:#4a5568;font-weight:400">/</span>
-    <span style="color:#a0aec0;font-weight:400">${services.length} service${services.length > 1 ? 's' : ''}</span>
+    <span style="font-size:10px;background:var(--muted);padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;color:var(--card);font-weight:400">v${version}</span>
+    <span style="color:var(--muted);font-weight:400">/</span>
+    <span style="color:var(--muted);font-weight:400">${services.length} service${services.length > 1 ? 's' : ''}</span>
   </h1>
-  <span class="meta">Scanned ${scanTime} · ${totalPkgs.toLocaleString()} packages · <a href="/api/data" target="_blank" style="color:#4a5568">JSON API</a></span>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="meta" style="background:var(--success-bg);padding:4px 12px;border-radius:6px;border:1px solid var(--success-border);color:var(--success-c)">
+      CVE data from <strong>OSV.dev (by Google)</strong> &mdash; updated daily from NVD · GitHub Advisory · PyPI Advisory · npm Advisory
+    </span>
+    <span class="meta">Scanned ${scanTime} · ${totalPkgs.toLocaleString()} pkgs · <a href="/api/data" target="_blank" style="background:var(--nav-active-bg);color:var(--nav-active-c);padding:2px 8px;border-radius:4px;font-weight:600;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--nav-active-border)">⚡ JSON API</a></span>
+    <button id="theme-btn" onclick="toggleTheme()" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px">🌙 Dark</button>
+    <button onclick="downloadJson()" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px">📥 JSON</button>
+    <button onclick="downloadHtml()" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px">📄 HTML</button>
+  </div>
 </div>
 
 <div class="body">
@@ -227,7 +301,7 @@ tr.clickable:hover td{background:#f0f4f8}
       <div class="sidebar-section">Services</div>
       ${serviceNav}
     </div>
-    <div style="padding:12px 14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);line-height:1.5;background:#f7fafc;flex-shrink:0">
+    <div style="padding:12px 14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);line-height:1.5;background:var(--bg);flex-shrink:0">
       <div style="font-weight:600;color:var(--text);margin-bottom:2px">Developer Info</div>
       <div>👤 Toan Nguyen</div>
       <div>💻 <a href="https://github.com/toan203/osv-ui" target="_blank" rel="noopener" style="color:var(--muted)">toan203/osv-ui</a></div>
@@ -241,13 +315,45 @@ tr.clickable:hover td{background:#f0f4f8}
   </nav>
 
   <div class="content">
-    ${osvNote}
     ${servicePanels}
   </div>
 </div>
 
 <script>
-const ALL_DATA = ${JSON.stringify({ services })};
+const ALL_DATA = ${JSON.stringify({ services, scannedAt, noOsv })};
+
+function toggleTheme() {
+  const isDark = document.documentElement.classList.contains('dark');
+  if (isDark) {
+    document.documentElement.classList.remove('dark');
+    document.getElementById('theme-btn').innerHTML = '🌙 Dark';
+  } else {
+    document.documentElement.classList.add('dark');
+    document.getElementById('theme-btn').innerHTML = '☀️ Light';
+  }
+}
+
+function downloadJson() {
+  const blob = new Blob([JSON.stringify(ALL_DATA, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'osv-report.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadHtml() {
+  // Hide buttons before generating HTML string to make standalone report cleaner? Not really necessary, but good to have.
+  const html = '<!DOCTYPE html>\\n<html lang="en">\\n' + document.documentElement.outerHTML + '\\n</html>';
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'osv-report.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function showService(idx, el) {
   document.querySelectorAll('.svc-panel').forEach(p => p.classList.remove('active'));
@@ -343,12 +449,14 @@ function drawDonut(canvasId, segments, cx=60, cy=60, r=44, hole=26) {
   const el = document.getElementById(canvasId);
   if (!el) return;
   const total = segments.reduce((s, x) => s + x.v, 0);
-  if (!total) { el.innerHTML = '<text x="' + cx + '" y="' + (cy+4) + '" text-anchor="middle" font-size="10" fill="#a0aec0">no data</text>'; return; }
+  if (!total) { el.innerHTML = '<text x="' + cx + '" y="' + (cy+4) + '" text-anchor="middle" font-size="10" fill="var(--muted)">no data</text>'; return; }
   let angle = -90, paths = '';
   segments.forEach(seg => {
     if (!seg.v) return;
+    let deg = (seg.v / total) * 360;
+    if (deg >= 360) deg = 359.99;
     const a1 = angle * Math.PI / 180;
-    const deg = (seg.v / total) * 360; angle += deg;
+    angle += deg;
     const a2 = angle * Math.PI / 180, lg = deg > 180 ? 1 : 0;
     const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
     const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
@@ -357,24 +465,24 @@ function drawDonut(canvasId, segments, cx=60, cy=60, r=44, hole=26) {
     paths += '<path d="M'+ix1+','+iy1+'L'+x1+','+y1+'A'+r+','+r+' 0 '+lg+' 1 '+x2+','+y2+'L'+ix2+','+iy2+'A'+hole+','+hole+' 0 '+lg+' 0 '+ix1+','+iy1+'" fill="'+seg.c+'" opacity=".9"/>';
   });
   el.innerHTML = paths +
-    '<text x="'+cx+'" y="'+(cy-4)+'" text-anchor="middle" font-size="15" font-weight="700" fill="#1a202c">'+total+'</text>' +
-    '<text x="'+cx+'" y="'+(cy+11)+'" text-anchor="middle" font-size="9" fill="#718096">total</text>';
+    '<text x="'+cx+'" y="'+(cy-4)+'" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">'+total+'</text>' +
+    '<text x="'+cx+'" y="'+(cy+11)+'" text-anchor="middle" font-size="9" fill="var(--muted)">total</text>';
 }
 
 window.addEventListener('load', () => {
   ALL_DATA.services.forEach((svc, i) => {
     const s = svc.severity;
     drawDonut('donut-sev-'+i, [
-      {v:s.critical, c:'#e53e3e', l:'Critical'},
-      {v:s.high,     c:'#dd6b20', l:'High'},
-      {v:s.moderate, c:'#d69e2e', l:'Moderate'},
-      {v:s.low,      c:'#3182ce', l:'Low'},
+      {v:s.critical, c:'var(--sev-critical-c)', l:'Critical'},
+      {v:s.high,     c:'var(--sev-high-c)', l:'High'},
+      {v:s.moderate, c:'var(--sev-moderate-c)', l:'Moderate'},
+      {v:s.low,      c:'var(--sev-low-c)', l:'Low'},
     ]);
     const fix = svc.vulns.filter(v => v.fixedIn).length;
     const nofix = svc.vulns.length - fix;
     drawDonut('donut-fix-'+i, [
-      {v:fix,   c:'#38a169', l:'Has fix'},
-      {v:nofix, c:'#fc8181', l:'No fix yet'},
+      {v:fix,   c:'var(--success-c)', l:'Has fix'},
+      {v:nofix, c:'var(--red)', l:'No fix yet'},
     ]);
   });
 });
@@ -390,11 +498,11 @@ function buildServicePanel(svc, i) {
 
   // Ecosystem badges
   const ecoBadges = svc.ecosystems.map(e => {
-    let [bg, fg, border, label] = ['#f7fafc','#4a5568','#e2e8f0', e];
-    if (e === 'npm') { bg='#fffef0'; fg='#7d6608'; border='#f6e05e'; label='🟨 npm'; }
-    else if (e === 'PyPI') { bg='#f0f9ff'; fg='#1e4e79'; border='#bee3f8'; label='🐍 Python'; }
-    else if (e === 'Go') { bg='#ebf8ff'; fg='#2c5282'; border='#90cdf4'; label='🔵 Go'; }
-    else if (e === 'crates.io') { bg='#fff5f5'; fg='#9b2c2c'; border='#feb2b2'; label='🦀 Rust'; }
+    let [bg, fg, border, label] = ['var(--bg)', 'var(--text)', 'var(--border)', e];
+    if (e === 'npm') { bg = 'var(--eco-npm-bg)'; fg = 'var(--eco-npm-fg)'; border = 'var(--eco-npm-border)'; label = '🟨 npm'; }
+    else if (e === 'PyPI') { bg = 'var(--eco-pypi-bg)'; fg = 'var(--eco-pypi-fg)'; border = 'var(--eco-pypi-border)'; label = '🐍 Python'; }
+    else if (e === 'Go') { bg = 'var(--eco-go-bg)'; fg = 'var(--eco-go-fg)'; border = 'var(--eco-go-border)'; label = '🔵 Go'; }
+    else if (e === 'crates.io') { bg = 'var(--eco-rust-bg)'; fg = 'var(--eco-rust-fg)'; border = 'var(--eco-rust-border)'; label = '🦀 Rust'; }
     return `<span class="eco-badge" style="background:${bg};color:${fg};border-color:${border}">${label}</span>`;
   }).join('');
 
@@ -426,19 +534,19 @@ function buildServicePanel(svc, i) {
       <td>${sevBadge(v.severity)}</td>
       <td>
         <div style="font-weight:600">${esc(v.packageName)}</div>
-        <div style="font-size:10px;color:#718096">v${esc(v.packageVersion)} · ${esc(v.ecosystem)}</div>
+        <div style="font-size:10px;color:var(--muted)">v${esc(v.packageVersion)} · ${esc(v.ecosystem)}</div>
       </td>
       <td>
         <div style="max-width:240px">${esc(v.title)}</div>
-        <div style="font-size:10px;color:#718096;margin-top:2px">${esc(v.cveId || v.id || '')}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${esc(v.cveId || v.id || '')}</div>
       </td>
       <td><code>${esc(v.affectedRange)}</code></td>
-      <td>${v.isDirect ? '<span class="pkg-tag" style="background:#e6fffa;color:#276749">direct</span>' : '<span class="pkg-tag" style="background:#edf2f7;color:#718096">transitive</span>'}</td>
+      <td>${v.isDirect ? '<span class="pkg-tag" style="background:var(--tag-direct-bg);color:var(--tag-direct-c)">direct</span>' : '<span class="pkg-tag" style="background:var(--tag-trans-bg);color:var(--tag-trans-c)">transitive</span>'}</td>
       <td>
-        ${v.fixedIn ? `<div style="color:#38a169;font-weight:600">✅ ${esc(v.fixedIn)}</div>
+        ${v.fixedIn ? `<div style="color:var(--green);font-weight:600">✅ ${esc(v.fixedIn)}</div>
           ${(highestFixes[v.packageName] && v.fixedIn !== highestFixes[v.packageName] && compareVersions(highestFixes[v.packageName], v.fixedIn) > 0)
-            ? `<div style="font-size:9px;color:#718096;margin-top:2px;line-height:1.1">💡 Installing <strong>${esc(highestFixes[v.packageName])}</strong> will also fix this</div>`
-            : ''}` : '<span style="color:#718096">—</span>'}
+          ? `<div style="font-size:9px;color:var(--muted);margin-top:2px;line-height:1.1">💡 Installing <strong>${esc(highestFixes[v.packageName])}</strong> will also fix this</div>`
+          : ''}` : '<span style="color:var(--muted)">—</span>'}
       </td>
     </tr>
     <tr class="detail-row" id="detail-${rowId}">
@@ -453,7 +561,7 @@ function buildServicePanel(svc, i) {
             ${v.ghsaUrl ? `<div class="detail-item"><div class="label">GitHub Advisory</div><div class="val"><a href="${esc(v.ghsaUrl)}" target="_blank">${esc(v.ghsaId)}</a></div></div>` : ''}
             ${v.published ? `<div class="detail-item"><div class="label">Published</div><div class="val">${new Date(v.published).toLocaleDateString()}</div></div>` : ''}
           </div>
-          ${refs ? `<div style="margin-top:8px;font-size:10px;color:#718096">References: ${refs}</div>` : ''}
+          ${refs ? `<div style="margin-top:8px;font-size:10px;color:var(--muted)">References: ${refs}</div>` : ''}
         </div>
       </td>
     </tr>`;
@@ -496,8 +604,8 @@ function buildServicePanel(svc, i) {
           fixes ${g.cveCount} CVE${g.cveCount > 1 ? 's' : ''}
         </div>
       </td>
-      <td style="color:#c53030"><code>${esc(g.current)}</code></td>
-      <td style="color:#38a169"><code>${esc(g.fixedIn)}</code></td>
+      <td style="color:var(--code-c)"><code>${esc(g.current)}</code></td>
+      <td style="color:var(--green)"><code>${esc(g.fixedIn)}</code></td>
       <td><div class="fix-cmd" style="margin:0">${esc(g.fixCommand || '')}<button onclick="copyCmd(this,'${esc(g.fixCommand || '')}')">Copy</button></div></td>
     </tr>`).join('');
 
@@ -506,28 +614,28 @@ function buildServicePanel(svc, i) {
     <tr class="pkg-row" data-type="${p.dev ? 'dev' : 'prod'}" data-name="${esc(p.name.toLowerCase())}">
       <td><a href="${esc(p.registry)}" target="_blank" rel="noopener">${esc(p.name)}</a></td>
       <td><code>${esc(p.version)}</code></td>
-      <td><span class="pkg-tag" style="${p.dev ? 'background:#ebf8ff;color:#2b6cb0' : 'background:#f0fff4;color:#276749'}">${p.dev ? 'dev' : 'prod'}</span></td>
+      <td><span class="pkg-tag" style="${p.dev ? 'background:var(--tag-dev-bg);color:var(--tag-dev-c)' : 'background:var(--tag-prod-bg);color:var(--tag-prod-c)'}">${p.dev ? 'dev' : 'prod'}</span></td>
       <td>${esc(p.ecosystem)}</td>
       ${p.isDirect !== undefined ? `<td>${p.isDirect ? '✓' : ''}</td>` : ''}
     </tr>`).join('');
 
   // Severity filter buttons
-  const sevFilterButtons = ['critical','high','moderate','low']
+  const sevFilterButtons = ['critical', 'high', 'moderate', 'low']
     .filter(s => sev[s] > 0)
     .map(s => `<button class="fb sev-filter" data-sev="${s}" onclick="filterVulns(${i},'${s}',this)" style="color:${SEV_COLOR[s]}">● ${capitalize(s)} (${sev[s]})</button>`)
     .join('');
 
   return `
 <div class="svc-panel ${i === 0 ? 'active' : ''}" id="svc-${i}">
-  <div class="svc-header">
+  <div class="svc-header" style="margin-bottom:20px">
     <span class="svc-title">${esc(svc.name)}</span>
     ${ecoBadges}
-    <span style="font-size:11px;color:#a0aec0">${manifestInfo}</span>
+    <span style="font-size:11px;color:var(--muted)">${manifestInfo}</span>
   </div>
 
   <div class="stats-grid">
     <div class="sc"><div class="v">${svc.totalPackages.toLocaleString()}</div><div class="l">Packages</div></div>
-    <div class="sc"><div class="v" style="color:#38a169">${svc.directCount}</div><div class="l">Direct</div></div>
+    <div class="sc"><div class="v" style="color:var(--green)">${svc.directCount}</div><div class="l">Direct</div></div>
     <div class="sc"><div class="v" style="color:var(--red)">${sev.critical}</div><div class="l">Critical</div></div>
     <div class="sc"><div class="v" style="color:var(--orange)">${sev.high}</div><div class="l">High</div></div>
     <div class="sc"><div class="v" style="color:var(--yellow)">${sev.moderate}</div><div class="l">Moderate</div></div>
@@ -550,9 +658,9 @@ function buildServicePanel(svc, i) {
       <div class="donut-wrap">
         <svg width="120" height="120" viewBox="0 0 120 120" id="donut-sev-${i}"></svg>
         <div class="donut-legend">
-          ${['critical','high','moderate','low'].filter(s => sev[s]).map(s =>
-            `<div class="leg-item"><div class="dot" style="background:${SEV_COLOR[s]}"></div>${capitalize(s)}: ${sev[s]}</div>`
-          ).join('')}
+          ${['critical', 'high', 'moderate', 'low'].filter(s => sev[s]).map(s =>
+    `<div class="leg-item"><div class="dot" style="background:${SEV_COLOR[s]}"></div>${capitalize(s)}: ${sev[s]}</div>`
+  ).join('')}
         </div>
       </div>
     </div>
@@ -561,8 +669,8 @@ function buildServicePanel(svc, i) {
       <div class="donut-wrap">
         <svg width="120" height="120" viewBox="0 0 120 120" id="donut-fix-${i}"></svg>
         <div class="donut-legend">
-          <div class="leg-item"><div class="dot" style="background:#38a169"></div>Has fix: ${svc.vulns.filter(v=>v.fixedIn).length}</div>
-          <div class="leg-item"><div class="dot" style="background:#fc8181"></div>No fix: ${svc.vulns.filter(v=>!v.fixedIn).length}</div>
+          <div class="leg-item"><div class="dot" style="background:var(--success-c)"></div>Has fix: ${svc.vulns.filter(v => v.fixedIn).length}</div>
+          <div class="leg-item"><div class="dot" style="background:var(--red)"></div>No fix: ${svc.vulns.filter(v => !v.fixedIn).length}</div>
         </div>
       </div>
     </div>
@@ -577,13 +685,15 @@ function buildServicePanel(svc, i) {
   <!-- VULNERABILITIES TAB -->
   <div class="tab-content active" data-tab="vulns">
     ${svc.vulns.length === 0
-      ? `<div class="tbl-wrap"><div class="empty"><div class="icon">✅</div><div style="font-size:16px;font-weight:600">No vulnerabilities found</div><div style="color:#718096;margin-top:4px">${svc.totalPackages} packages all clean</div></div></div>`
-      : `<div class="filters">
-          <button class="fb sev-filter active" data-sev="all" onclick="filterVulns(${i},'all',this)">All (${svc.vulns.length})</button>
-          ${sevFilterButtons}
-        </div>
-        <input class="search vuln-search" placeholder="Search package..." oninput="applyVulnFilters(${i})">
-        <div style="font-size:11px;color:#a0aec0;margin-bottom:8px">↓ Click any row to expand details · Data from OSV.dev</div>
+      ? `<div class="tbl-wrap"><div class="empty"><div class="icon">✅</div><div style="font-size:16px;font-weight:600">No vulnerabilities found</div><div style="color:var(--muted);margin-top:4px">${svc.totalPackages} packages all clean</div></div></div>`
+      : `<div class="filters-row">
+            <div class="filters">
+              <button class="fb sev-filter active" data-sev="all" onclick="filterVulns(${i},'all',this)">All (${svc.vulns.length})</button>
+              ${sevFilterButtons}
+            </div>
+            <input class="search vuln-search" placeholder="Search package..." oninput="applyVulnFilters(${i})">
+            <div style="font-size:11px;color:var(--muted);white-space:nowrap">↓ Click any row to expand details · Data from OSV.dev</div>
+          </div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>Severity</th><th>Package</th><th>Description</th><th>Affected</th><th>Type</th><th>Fix in</th></tr></thead>
@@ -596,7 +706,7 @@ function buildServicePanel(svc, i) {
   <!-- FIX GUIDE TAB (Dependabot-style) -->
   <div class="tab-content" data-tab="fixes">
     ${uniqueFixes.length === 0
-      ? `<div class="tbl-wrap"><div class="empty"><div class="icon">${svc.vulns.length === 0 ? '✅' : '⚠'}</div><div style="font-size:14px;font-weight:600">${svc.vulns.length === 0 ? 'No vulnerabilities!' : 'No auto-fixable vulnerabilities found'}</div><div style="color:#718096;font-size:12px;margin-top:4px">${svc.vulns.length > 0 ? 'Transitive deps may need upstream fixes.' : ''}</div></div></div>`
+      ? `<div class="tbl-wrap"><div class="empty"><div class="icon">${svc.vulns.length === 0 ? '✅' : '⚠'}</div><div style="font-size:14px;font-weight:600">${svc.vulns.length === 0 ? 'No vulnerabilities!' : 'No auto-fixable vulnerabilities found'}</div><div style="color:var(--muted);font-size:12px;margin-top:4px">${svc.vulns.length > 0 ? 'Transitive deps may need upstream fixes.' : ''}</div></div></div>`
       : `<div class="upgrade-card">
           <div class="uc-header">💊 ${uniqueFixes.length} direct ${uniqueFixes.length === 1 ? 'package' : 'packages'} can be upgraded to fix CVEs</div>
           <div style="overflow-x:auto">
@@ -606,32 +716,34 @@ function buildServicePanel(svc, i) {
           </table>
           </div>
         </div>
-        ${svc.vulns.filter(v=>v.fixedIn&&!v.isDirect).length > 0
-          ? `<div class="tbl-wrap" style="background:#fffaf0;border-color:#f6e05e">
-              <div style="padding:10px 14px;font-size:12px;color:#744210;font-weight:600">⚠ Transitive dependency fixes</div>
-              <div style="padding:0 14px 12px;font-size:12px;color:#744210">
+        ${svc.vulns.filter(v => v.fixedIn && !v.isDirect).length > 0
+        ? `<div class="tbl-wrap" style="background:var(--warn-bg);border-color:var(--warn-border)">
+              <div style="padding:10px 14px;font-size:12px;color:var(--warn-c);font-weight:600">⚠ Transitive dependency fixes</div>
+              <div style="padding:0 14px 12px;font-size:12px;color:var(--warn-c)">
                 ${svc.ecosystem === 'npm' ? 'Run <code>npm audit fix</code> or <code>npm audit fix --force</code> to attempt automatic resolution of transitive vulnerabilities.' :
-                  'For Python transitive deps: check if top-level packages have newer versions that pull in safe sub-versions.'}
+          'For Python transitive deps: check if top-level packages have newer versions that pull in safe sub-versions.'}
               </div>
             </div>` : ''}
-        <div style="font-size:11px;color:#a0aec0;margin-top:8px">Fix commands are generated based on OSV.dev "fixed in" data. Always test in staging first.</div>`
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Fix commands are generated based on OSV.dev "fixed in" data. Always test in staging first.</div>`
     }
   </div>
 
   <!-- PACKAGES TAB -->
   <div class="tab-content" data-tab="packages">
-    <div class="filters">
-      <button class="fb pkg-filter active" data-type="all" onclick="filterPkgs(${i},'all',this)">All (${svc.totalPackages})</button>
-      <button class="fb pkg-filter" data-type="prod" onclick="filterPkgs(${i},'prod',this)">Production</button>
-      <button class="fb pkg-filter" data-type="dev" onclick="filterPkgs(${i},'dev',this)">Dev only</button>
+    <div class="filters-row">
+      <div class="filters">
+        <button class="fb pkg-filter active" data-type="all" onclick="filterPkgs(${i},'all',this)">All (${svc.totalPackages})</button>
+        <button class="fb pkg-filter" data-type="prod" onclick="filterPkgs(${i},'prod',this)">Production</button>
+        <button class="fb pkg-filter" data-type="dev" onclick="filterPkgs(${i},'dev',this)">Dev only</button>
+      </div>
+      <input class="search pkg-search" placeholder="Search..." oninput="searchPkgs(${i},this.value)">
     </div>
-    <input class="search pkg-search" placeholder="Search..." oninput="searchPkgs(${i},this.value)">
     <div class="tbl-wrap">
       <table>
         <thead><tr><th>Package</th><th>Version</th><th>Env</th><th>Ecosystem</th><th>Direct</th></tr></thead>
         <tbody>${pkgRows}</tbody>
       </table>
-      ${svc.packages.length > 800 ? `<div style="padding:8px 14px;font-size:11px;color:#a0aec0">Showing first 800 of ${svc.packages.length}</div>` : ''}
+      ${svc.packages.length > 800 ? `<div style="padding:8px 14px;font-size:11px;color:var(--muted)">Showing first 800 of ${svc.packages.length}</div>` : ''}
     </div>
   </div>
 

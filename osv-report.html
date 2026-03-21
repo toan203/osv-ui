@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>osv-ui — 1 service</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#e53e3e;--orange:#dd6b20;--yellow:#d69e2e;--blue:#3182ce;--green:#38a169;--gray:#718096;--bg:#f7fafc;--card:#fff;--border:#e2e8f0;--text:#1a202c;--muted:#718096;--sidebar:220px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;font-size:13px}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+code{font-family:'SF Mono',Menlo,Monaco,monospace;font-size:11px;background:#edf2f7;padding:2px 6px;border-radius:4px;color:#c53030}
+
+/* Layout */
+.topbar{background:#1a202c;color:#e2e8f0;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px}
+.topbar h1{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.topbar .meta{font-size:11px;color:#718096;white-space:nowrap}
+.body{display:flex;flex:1;min-height:0}
+.sidebar{width:var(--sidebar);background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-top{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-top .label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.global-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.gs{background:var(--bg);border-radius:6px;padding:7px;text-align:center}
+.gs .v{font-size:18px;font-weight:700;line-height:1}
+.gs .l{font-size:9px;color:var(--muted);margin-top:1px}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px 0}
+.sidebar-section{font-size:9px;font-weight:700;letter-spacing:.1em;color:#a0aec0;padding:10px 14px 4px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:7px;padding:7px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .12s}
+.nav-item:hover{background:#f7fafc;color:var(--text)}
+.nav-item.active{background:#ebf8ff;border-left-color:#3182ce;color:#2b6cb0;font-weight:500}
+.content{flex:1;overflow-y:auto;padding:20px}
+
+/* Service panel */
+.svc-panel{display:none}.svc-panel.active{display:block}
+.svc-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.svc-title{font-size:18px;font-weight:700}
+.eco-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.sc .v{font-size:24px;font-weight:700;line-height:1}
+.sc .l{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* Risk bar */
+.risk-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
+.risk-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px}
+.risk-track{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.risk-fill{height:100%;border-radius:4px;transition:width .8s ease}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 16px;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s}
+.tab:hover{color:var(--text)}
+.tab.active{color:#2b6cb0;border-bottom-color:#3182ce}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* Filters */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fb{padding:4px 12px;border:1px solid var(--border);border-radius:999px;font-size:11px;cursor:pointer;background:var(--card);color:var(--muted);transition:all .12s}
+.fb:hover{border-color:#a0aec0;color:var(--text)}
+.fb.active{background:#3182ce;border-color:#3182ce;color:#fff}
+.search{padding:7px 12px;border:1px solid var(--border);border-radius:7px;font-size:12px;width:100%;max-width:280px;outline:none;margin-bottom:10px}
+.search:focus{border-color:#3182ce;box-shadow:0 0 0 2px #3182ce18}
+
+/* Table */
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}
+thead{background:#f7fafc}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #f0f4f8;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+
+/* Fix card */
+.fix-card{background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px;margin-top:6px;display:none}
+.fix-card.show{display:block}
+.fix-cmd{font-family:'SF Mono',monospace;font-size:12px;background:#e6fffa;padding:6px 10px;border-radius:5px;color:#276749;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fix-cmd button{font-size:10px;padding:2px 8px;border:1px solid #9ae6b4;border-radius:4px;background:#fff;cursor:pointer;color:#276749;white-space:nowrap}
+.fix-cmd button:hover{background:#9ae6b4}
+
+/* Dependabot-style upgrade table */
+.upgrade-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.uc-header{background:#f0fff4;border-bottom:1px solid #9ae6b4;padding:10px 14px;font-size:12px;font-weight:600;color:#276749;display:flex;align-items:center;gap:8px}
+
+/* Charts row */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.ct{font-size:12px;font-weight:600;margin-bottom:12px}
+.donut-wrap{display:flex;align-items:center;gap:12px}
+.donut-legend{display:flex;flex-direction:column;gap:5px;font-size:11px}
+.leg-item{display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pkg-tag{font-size:10px;padding:1px 6px;border-radius:999px}
+
+/* Empty state */
+.empty{text-align:center;padding:32px;color:var(--green)}
+.empty .icon{font-size:40px;margin-bottom:8px}
+
+/* Vuln detail expandable row */
+.detail-row{background:#fafbfc;display:none}
+.detail-row.show{display:table-row}
+.detail-content{padding:10px 14px;font-size:11px;color:var(--muted)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.detail-item .label{font-size:10px;color:#a0aec0;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
+.detail-item .val{font-size:12px;color:var(--text)}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:#f0f4f8}
+.kofi-button{margin-top:12px;display:inline-block;vertical-align:middle}
+.kofi-link{display:flex;align-items:center;gap:3px;padding:1px 5px;border:1px solid #e2e8f0;border-radius:4px;color:#a0aec0;font-size:8.5px;font-weight:600;transition:all .2s ease;text-decoration:none!important}
+.kofi-link:hover{background:#ed8936;border-color:#ed8936;color:#fff}
+.kofi-link img{height:10px!important;opacity:0.5;filter:grayscale(1)}
+.kofi-link:hover img{opacity:1;filter:none}
+
+@media (prefers-color-scheme: dark) {
+  html { filter: invert(.92) hue-rotate(180deg); background: #000; }
+  img, .eco-badge { filter: invert(1) hue-rotate(180deg); }
+  svg text { fill: #1a202c !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🔍 osv-ui
+    <span style="font-size:10px;background:#4a5568;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;color:#fff;font-weight:400">v1.0.6</span>
+    <span style="color:#4a5568;font-weight:400">/</span>
+    <span style="color:#a0aec0;font-weight:400">1 service</span>
+  </h1>
+  <span class="meta">Scanned 3/21/2026, 9:59:37 AM · 106 packages · <a href="/api/data" target="_blank" style="color:#4a5568">JSON API</a></span>
+</div>
+
+<div class="body">
+  <nav class="sidebar">
+    <div class="sidebar-top">
+      <div class="label">Global summary</div>
+      <div class="global-stats">
+        <div class="gs"><div class="v">106</div><div class="l">Packages</div></div>
+        <div class="gs"><div class="v">0</div><div class="l">Total CVEs</div></div>
+        <div class="gs"><div class="v" style="color:var(--red)">0</div><div class="l">Critical</div></div>
+        <div class="gs"><div class="v" style="color:var(--orange)">0</div><div class="l">High</div></div>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">Services</div>
+      <div class="nav-item active" onclick="showService(0, this)" data-svc="0">
+      <span style="width:7px;height:7px;border-radius:50%;background:#38a169;display:inline-block;flex-shrink:0"></span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">osv-ui</span>
+      <span style="font-size:10px;color:#a0aec0;flex-shrink:0">🟨 0</span>
+    </div>
+    </div>
+    <div style="padding:12px 14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);line-height:1.5;background:#f7fafc;flex-shrink:0">
+      <div style="font-weight:600;color:var(--text);margin-bottom:2px">Developer Info</div>
+      <div>👤 Toan Nguyen</div>
+      <div>💻 <a href="https://github.com/toan203/osv-ui" target="_blank" rel="noopener" style="color:var(--muted)">toan203/osv-ui</a></div>
+      <div class="kofi-button">
+        <a href="https://ko-fi.com/P5P31W9W6A" target="_blank" class="kofi-link">
+          <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" />
+          Sponsor this project
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="content">
+    <div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:6px;padding:8px 12px;font-size:12px;color:#276749;margin-bottom:16px">
+        ✅ CVE data from <a href="https://osv.dev" target="_blank" rel="noopener" style="color:#276749;font-weight:600">OSV.dev</a> — updated daily from NVD · GitHub Advisory · PyPI Advisory · npm Advisory
+      </div>
+    
+<div class="svc-panel active" id="svc-0">
+  <div class="svc-header">
+    <span class="svc-title">osv-ui</span>
+    <span class="eco-badge" style="background:#fffef0;color:#7d6608;border-color:#f6e05e">🟨 npm</span>
+    <span style="font-size:11px;color:#a0aec0"><code>npm</code></span>
+  </div>
+
+  <div class="stats-grid">
+    <div class="sc"><div class="v">106</div><div class="l">Packages</div></div>
+    <div class="sc"><div class="v" style="color:#38a169">2</div><div class="l">Direct</div></div>
+    <div class="sc"><div class="v" style="color:var(--red)">0</div><div class="l">Critical</div></div>
+    <div class="sc"><div class="v" style="color:var(--orange)">0</div><div class="l">High</div></div>
+    <div class="sc"><div class="v" style="color:var(--yellow)">0</div><div class="l">Moderate</div></div>
+    <div class="sc"><div class="v" style="color:var(--blue)">0</div><div class="l">Low</div></div>
+  </div>
+
+  <div class="risk-card">
+    <div class="risk-row">
+      <span style="font-weight:600">Risk score</span>
+      <span style="font-size:15px;font-weight:700;color:#38a169">0/100</span>
+    </div>
+    <div class="risk-track">
+      <div class="risk-fill" data-score="0" style="width:0;background:#38a169"></div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="cc">
+      <div class="ct">Severity breakdown</div>
+      <div class="donut-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120" id="donut-sev-0"></svg>
+        <div class="donut-legend">
+          
+        </div>
+      </div>
+    </div>
+    <div class="cc">
+      <div class="ct">Fix availability</div>
+      <div class="donut-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120" id="donut-fix-0"></svg>
+        <div class="donut-legend">
+          <div class="leg-item"><div class="dot" style="background:#38a169"></div>Has fix: 0</div>
+          <div class="leg-item"><div class="dot" style="background:#fc8181"></div>No fix: 0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="vulns" onclick="showTab(0,'vulns')">🚨 Vulnerabilities (0)</div>
+    <div class="tab" data-tab="fixes" onclick="showTab(0,'fixes')">💊 Upgrade guide (0 direct)</div>
+    <div class="tab" data-tab="packages" onclick="showTab(0,'packages')">📦 Packages (106)</div>
+  </div>
+
+  <!-- VULNERABILITIES TAB -->
+  <div class="tab-content active" data-tab="vulns">
+    <div class="tbl-wrap"><div class="empty"><div class="icon">✅</div><div style="font-size:16px;font-weight:600">No vulnerabilities found</div><div style="color:#718096;margin-top:4px">106 packages all clean</div></div></div>
+  </div>
+
+  <!-- FIX GUIDE TAB (Dependabot-style) -->
+  <div class="tab-content" data-tab="fixes">
+    <div class="tbl-wrap"><div class="empty"><div class="icon">✅</div><div style="font-size:14px;font-weight:600">No vulnerabilities!</div><div style="color:#718096;font-size:12px;margin-top:4px"></div></div></div>
+  </div>
+
+  <!-- PACKAGES TAB -->
+  <div class="tab-content" data-tab="packages">
+    <div class="filters">
+      <button class="fb pkg-filter active" data-type="all" onclick="filterPkgs(0,'all',this)">All (106)</button>
+      <button class="fb pkg-filter" data-type="prod" onclick="filterPkgs(0,'prod',this)">Production</button>
+      <button class="fb pkg-filter" data-type="dev" onclick="filterPkgs(0,'dev',this)">Dev only</button>
+    </div>
+    <input class="search pkg-search" placeholder="Search..." oninput="searchPkgs(0,this.value)">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Package</th><th>Version</th><th>Env</th><th>Ecosystem</th><th>Direct</th></tr></thead>
+        <tbody>
+    <tr class="pkg-row" data-type="prod" data-name="accepts">
+      <td><a href="https://www.npmjs.com/package/accepts" target="_blank" rel="noopener">accepts</a></td>
+      <td><code>1.3.8</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="array-flatten">
+      <td><a href="https://www.npmjs.com/package/array-flatten" target="_blank" rel="noopener">array-flatten</a></td>
+      <td><code>1.1.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="big-integer">
+      <td><a href="https://www.npmjs.com/package/big-integer" target="_blank" rel="noopener">big-integer</a></td>
+      <td><code>1.6.52</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="body-parser">
+      <td><a href="https://www.npmjs.com/package/body-parser" target="_blank" rel="noopener">body-parser</a></td>
+      <td><code>1.20.4</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="bplist-parser">
+      <td><a href="https://www.npmjs.com/package/bplist-parser" target="_blank" rel="noopener">bplist-parser</a></td>
+      <td><code>0.2.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="bundle-name">
+      <td><a href="https://www.npmjs.com/package/bundle-name" target="_blank" rel="noopener">bundle-name</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="bytes">
+      <td><a href="https://www.npmjs.com/package/bytes" target="_blank" rel="noopener">bytes</a></td>
+      <td><code>3.1.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="call-bind-apply-helpers">
+      <td><a href="https://www.npmjs.com/package/call-bind-apply-helpers" target="_blank" rel="noopener">call-bind-apply-helpers</a></td>
+      <td><code>1.0.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="call-bound">
+      <td><a href="https://www.npmjs.com/package/call-bound" target="_blank" rel="noopener">call-bound</a></td>
+      <td><code>1.0.4</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="content-disposition">
+      <td><a href="https://www.npmjs.com/package/content-disposition" target="_blank" rel="noopener">content-disposition</a></td>
+      <td><code>0.5.4</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="content-type">
+      <td><a href="https://www.npmjs.com/package/content-type" target="_blank" rel="noopener">content-type</a></td>
+      <td><code>1.0.5</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="cookie">
+      <td><a href="https://www.npmjs.com/package/cookie" target="_blank" rel="noopener">cookie</a></td>
+      <td><code>0.7.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="cookie-signature">
+      <td><a href="https://www.npmjs.com/package/cookie-signature" target="_blank" rel="noopener">cookie-signature</a></td>
+      <td><code>1.0.7</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="cross-spawn">
+      <td><a href="https://www.npmjs.com/package/cross-spawn" target="_blank" rel="noopener">cross-spawn</a></td>
+      <td><code>7.0.6</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="debug">
+      <td><a href="https://www.npmjs.com/package/debug" target="_blank" rel="noopener">debug</a></td>
+      <td><code>2.6.9</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="default-browser">
+      <td><a href="https://www.npmjs.com/package/default-browser" target="_blank" rel="noopener">default-browser</a></td>
+      <td><code>4.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="default-browser-id">
+      <td><a href="https://www.npmjs.com/package/default-browser-id" target="_blank" rel="noopener">default-browser-id</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="define-lazy-prop">
+      <td><a href="https://www.npmjs.com/package/define-lazy-prop" target="_blank" rel="noopener">define-lazy-prop</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="depd">
+      <td><a href="https://www.npmjs.com/package/depd" target="_blank" rel="noopener">depd</a></td>
+      <td><code>2.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="destroy">
+      <td><a href="https://www.npmjs.com/package/destroy" target="_blank" rel="noopener">destroy</a></td>
+      <td><code>1.2.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="dunder-proto">
+      <td><a href="https://www.npmjs.com/package/dunder-proto" target="_blank" rel="noopener">dunder-proto</a></td>
+      <td><code>1.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="ee-first">
+      <td><a href="https://www.npmjs.com/package/ee-first" target="_blank" rel="noopener">ee-first</a></td>
+      <td><code>1.1.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="encodeurl">
+      <td><a href="https://www.npmjs.com/package/encodeurl" target="_blank" rel="noopener">encodeurl</a></td>
+      <td><code>2.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="es-define-property">
+      <td><a href="https://www.npmjs.com/package/es-define-property" target="_blank" rel="noopener">es-define-property</a></td>
+      <td><code>1.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="es-errors">
+      <td><a href="https://www.npmjs.com/package/es-errors" target="_blank" rel="noopener">es-errors</a></td>
+      <td><code>1.3.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="es-object-atoms">
+      <td><a href="https://www.npmjs.com/package/es-object-atoms" target="_blank" rel="noopener">es-object-atoms</a></td>
+      <td><code>1.1.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="escape-html">
+      <td><a href="https://www.npmjs.com/package/escape-html" target="_blank" rel="noopener">escape-html</a></td>
+      <td><code>1.0.3</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="etag">
+      <td><a href="https://www.npmjs.com/package/etag" target="_blank" rel="noopener">etag</a></td>
+      <td><code>1.8.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="execa">
+      <td><a href="https://www.npmjs.com/package/execa" target="_blank" rel="noopener">execa</a></td>
+      <td><code>7.2.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="express">
+      <td><a href="https://www.npmjs.com/package/express" target="_blank" rel="noopener">express</a></td>
+      <td><code>4.22.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td>✓</td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="finalhandler">
+      <td><a href="https://www.npmjs.com/package/finalhandler" target="_blank" rel="noopener">finalhandler</a></td>
+      <td><code>1.3.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="forwarded">
+      <td><a href="https://www.npmjs.com/package/forwarded" target="_blank" rel="noopener">forwarded</a></td>
+      <td><code>0.2.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="fresh">
+      <td><a href="https://www.npmjs.com/package/fresh" target="_blank" rel="noopener">fresh</a></td>
+      <td><code>0.5.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="function-bind">
+      <td><a href="https://www.npmjs.com/package/function-bind" target="_blank" rel="noopener">function-bind</a></td>
+      <td><code>1.1.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="get-intrinsic">
+      <td><a href="https://www.npmjs.com/package/get-intrinsic" target="_blank" rel="noopener">get-intrinsic</a></td>
+      <td><code>1.3.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="get-proto">
+      <td><a href="https://www.npmjs.com/package/get-proto" target="_blank" rel="noopener">get-proto</a></td>
+      <td><code>1.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="get-stream">
+      <td><a href="https://www.npmjs.com/package/get-stream" target="_blank" rel="noopener">get-stream</a></td>
+      <td><code>6.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="gopd">
+      <td><a href="https://www.npmjs.com/package/gopd" target="_blank" rel="noopener">gopd</a></td>
+      <td><code>1.2.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="has-symbols">
+      <td><a href="https://www.npmjs.com/package/has-symbols" target="_blank" rel="noopener">has-symbols</a></td>
+      <td><code>1.1.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="hasown">
+      <td><a href="https://www.npmjs.com/package/hasown" target="_blank" rel="noopener">hasown</a></td>
+      <td><code>2.0.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="http-errors">
+      <td><a href="https://www.npmjs.com/package/http-errors" target="_blank" rel="noopener">http-errors</a></td>
+      <td><code>2.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="human-signals">
+      <td><a href="https://www.npmjs.com/package/human-signals" target="_blank" rel="noopener">human-signals</a></td>
+      <td><code>4.3.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="iconv-lite">
+      <td><a href="https://www.npmjs.com/package/iconv-lite" target="_blank" rel="noopener">iconv-lite</a></td>
+      <td><code>0.4.24</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="inherits">
+      <td><a href="https://www.npmjs.com/package/inherits" target="_blank" rel="noopener">inherits</a></td>
+      <td><code>2.0.4</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="ipaddr.js">
+      <td><a href="https://www.npmjs.com/package/ipaddr.js" target="_blank" rel="noopener">ipaddr.js</a></td>
+      <td><code>1.9.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="is-docker">
+      <td><a href="https://www.npmjs.com/package/is-docker" target="_blank" rel="noopener">is-docker</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="is-inside-container">
+      <td><a href="https://www.npmjs.com/package/is-inside-container" target="_blank" rel="noopener">is-inside-container</a></td>
+      <td><code>1.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="is-stream">
+      <td><a href="https://www.npmjs.com/package/is-stream" target="_blank" rel="noopener">is-stream</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="is-wsl">
+      <td><a href="https://www.npmjs.com/package/is-wsl" target="_blank" rel="noopener">is-wsl</a></td>
+      <td><code>2.2.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="is-wsl/is-docker">
+      <td><a href="https://www.npmjs.com/package/is-wsl/is-docker" target="_blank" rel="noopener">is-wsl/is-docker</a></td>
+      <td><code>2.2.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="isexe">
+      <td><a href="https://www.npmjs.com/package/isexe" target="_blank" rel="noopener">isexe</a></td>
+      <td><code>2.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="math-intrinsics">
+      <td><a href="https://www.npmjs.com/package/math-intrinsics" target="_blank" rel="noopener">math-intrinsics</a></td>
+      <td><code>1.1.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="media-typer">
+      <td><a href="https://www.npmjs.com/package/media-typer" target="_blank" rel="noopener">media-typer</a></td>
+      <td><code>0.3.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="merge-descriptors">
+      <td><a href="https://www.npmjs.com/package/merge-descriptors" target="_blank" rel="noopener">merge-descriptors</a></td>
+      <td><code>1.0.3</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="merge-stream">
+      <td><a href="https://www.npmjs.com/package/merge-stream" target="_blank" rel="noopener">merge-stream</a></td>
+      <td><code>2.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="methods">
+      <td><a href="https://www.npmjs.com/package/methods" target="_blank" rel="noopener">methods</a></td>
+      <td><code>1.1.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="mime">
+      <td><a href="https://www.npmjs.com/package/mime" target="_blank" rel="noopener">mime</a></td>
+      <td><code>1.6.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="mime-db">
+      <td><a href="https://www.npmjs.com/package/mime-db" target="_blank" rel="noopener">mime-db</a></td>
+      <td><code>1.52.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="mime-types">
+      <td><a href="https://www.npmjs.com/package/mime-types" target="_blank" rel="noopener">mime-types</a></td>
+      <td><code>2.1.35</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="mimic-fn">
+      <td><a href="https://www.npmjs.com/package/mimic-fn" target="_blank" rel="noopener">mimic-fn</a></td>
+      <td><code>4.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="ms">
+      <td><a href="https://www.npmjs.com/package/ms" target="_blank" rel="noopener">ms</a></td>
+      <td><code>2.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="negotiator">
+      <td><a href="https://www.npmjs.com/package/negotiator" target="_blank" rel="noopener">negotiator</a></td>
+      <td><code>0.6.3</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="npm-run-path">
+      <td><a href="https://www.npmjs.com/package/npm-run-path" target="_blank" rel="noopener">npm-run-path</a></td>
+      <td><code>5.3.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="npm-run-path/path-key">
+      <td><a href="https://www.npmjs.com/package/npm-run-path/path-key" target="_blank" rel="noopener">npm-run-path/path-key</a></td>
+      <td><code>4.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="object-inspect">
+      <td><a href="https://www.npmjs.com/package/object-inspect" target="_blank" rel="noopener">object-inspect</a></td>
+      <td><code>1.13.4</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="on-finished">
+      <td><a href="https://www.npmjs.com/package/on-finished" target="_blank" rel="noopener">on-finished</a></td>
+      <td><code>2.4.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="onetime">
+      <td><a href="https://www.npmjs.com/package/onetime" target="_blank" rel="noopener">onetime</a></td>
+      <td><code>6.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="open">
+      <td><a href="https://www.npmjs.com/package/open" target="_blank" rel="noopener">open</a></td>
+      <td><code>9.1.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td>✓</td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="parseurl">
+      <td><a href="https://www.npmjs.com/package/parseurl" target="_blank" rel="noopener">parseurl</a></td>
+      <td><code>1.3.3</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="path-key">
+      <td><a href="https://www.npmjs.com/package/path-key" target="_blank" rel="noopener">path-key</a></td>
+      <td><code>3.1.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="path-to-regexp">
+      <td><a href="https://www.npmjs.com/package/path-to-regexp" target="_blank" rel="noopener">path-to-regexp</a></td>
+      <td><code>0.1.12</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="proxy-addr">
+      <td><a href="https://www.npmjs.com/package/proxy-addr" target="_blank" rel="noopener">proxy-addr</a></td>
+      <td><code>2.0.7</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="qs">
+      <td><a href="https://www.npmjs.com/package/qs" target="_blank" rel="noopener">qs</a></td>
+      <td><code>6.14.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="range-parser">
+      <td><a href="https://www.npmjs.com/package/range-parser" target="_blank" rel="noopener">range-parser</a></td>
+      <td><code>1.2.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="raw-body">
+      <td><a href="https://www.npmjs.com/package/raw-body" target="_blank" rel="noopener">raw-body</a></td>
+      <td><code>2.5.3</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript">
+      <td><a href="https://www.npmjs.com/package/run-applescript" target="_blank" rel="noopener">run-applescript</a></td>
+      <td><code>5.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript/execa">
+      <td><a href="https://www.npmjs.com/package/run-applescript/execa" target="_blank" rel="noopener">run-applescript/execa</a></td>
+      <td><code>5.1.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript/human-signals">
+      <td><a href="https://www.npmjs.com/package/run-applescript/human-signals" target="_blank" rel="noopener">run-applescript/human-signals</a></td>
+      <td><code>2.1.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript/is-stream">
+      <td><a href="https://www.npmjs.com/package/run-applescript/is-stream" target="_blank" rel="noopener">run-applescript/is-stream</a></td>
+      <td><code>2.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript/mimic-fn">
+      <td><a href="https://www.npmjs.com/package/run-applescript/mimic-fn" target="_blank" rel="noopener">run-applescript/mimic-fn</a></td>
+      <td><code>2.1.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript/npm-run-path">
+      <td><a href="https://www.npmjs.com/package/run-applescript/npm-run-path" target="_blank" rel="noopener">run-applescript/npm-run-path</a></td>
+      <td><code>4.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript/onetime">
+      <td><a href="https://www.npmjs.com/package/run-applescript/onetime" target="_blank" rel="noopener">run-applescript/onetime</a></td>
+      <td><code>5.1.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="run-applescript/strip-final-newline">
+      <td><a href="https://www.npmjs.com/package/run-applescript/strip-final-newline" target="_blank" rel="noopener">run-applescript/strip-final-newline</a></td>
+      <td><code>2.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="safe-buffer">
+      <td><a href="https://www.npmjs.com/package/safe-buffer" target="_blank" rel="noopener">safe-buffer</a></td>
+      <td><code>5.2.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="safer-buffer">
+      <td><a href="https://www.npmjs.com/package/safer-buffer" target="_blank" rel="noopener">safer-buffer</a></td>
+      <td><code>2.1.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="send">
+      <td><a href="https://www.npmjs.com/package/send" target="_blank" rel="noopener">send</a></td>
+      <td><code>0.19.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="send/ms">
+      <td><a href="https://www.npmjs.com/package/send/ms" target="_blank" rel="noopener">send/ms</a></td>
+      <td><code>2.1.3</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="serve-static">
+      <td><a href="https://www.npmjs.com/package/serve-static" target="_blank" rel="noopener">serve-static</a></td>
+      <td><code>1.16.3</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="setprototypeof">
+      <td><a href="https://www.npmjs.com/package/setprototypeof" target="_blank" rel="noopener">setprototypeof</a></td>
+      <td><code>1.2.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="shebang-command">
+      <td><a href="https://www.npmjs.com/package/shebang-command" target="_blank" rel="noopener">shebang-command</a></td>
+      <td><code>2.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="shebang-regex">
+      <td><a href="https://www.npmjs.com/package/shebang-regex" target="_blank" rel="noopener">shebang-regex</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="side-channel">
+      <td><a href="https://www.npmjs.com/package/side-channel" target="_blank" rel="noopener">side-channel</a></td>
+      <td><code>1.1.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="side-channel-list">
+      <td><a href="https://www.npmjs.com/package/side-channel-list" target="_blank" rel="noopener">side-channel-list</a></td>
+      <td><code>1.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="side-channel-map">
+      <td><a href="https://www.npmjs.com/package/side-channel-map" target="_blank" rel="noopener">side-channel-map</a></td>
+      <td><code>1.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="side-channel-weakmap">
+      <td><a href="https://www.npmjs.com/package/side-channel-weakmap" target="_blank" rel="noopener">side-channel-weakmap</a></td>
+      <td><code>1.0.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="signal-exit">
+      <td><a href="https://www.npmjs.com/package/signal-exit" target="_blank" rel="noopener">signal-exit</a></td>
+      <td><code>3.0.7</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="statuses">
+      <td><a href="https://www.npmjs.com/package/statuses" target="_blank" rel="noopener">statuses</a></td>
+      <td><code>2.0.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="strip-final-newline">
+      <td><a href="https://www.npmjs.com/package/strip-final-newline" target="_blank" rel="noopener">strip-final-newline</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="titleize">
+      <td><a href="https://www.npmjs.com/package/titleize" target="_blank" rel="noopener">titleize</a></td>
+      <td><code>3.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="toidentifier">
+      <td><a href="https://www.npmjs.com/package/toidentifier" target="_blank" rel="noopener">toidentifier</a></td>
+      <td><code>1.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="type-is">
+      <td><a href="https://www.npmjs.com/package/type-is" target="_blank" rel="noopener">type-is</a></td>
+      <td><code>1.6.18</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="unpipe">
+      <td><a href="https://www.npmjs.com/package/unpipe" target="_blank" rel="noopener">unpipe</a></td>
+      <td><code>1.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="untildify">
+      <td><a href="https://www.npmjs.com/package/untildify" target="_blank" rel="noopener">untildify</a></td>
+      <td><code>4.0.0</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="utils-merge">
+      <td><a href="https://www.npmjs.com/package/utils-merge" target="_blank" rel="noopener">utils-merge</a></td>
+      <td><code>1.0.1</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="vary">
+      <td><a href="https://www.npmjs.com/package/vary" target="_blank" rel="noopener">vary</a></td>
+      <td><code>1.1.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr>
+    <tr class="pkg-row" data-type="prod" data-name="which">
+      <td><a href="https://www.npmjs.com/package/which" target="_blank" rel="noopener">which</a></td>
+      <td><code>2.0.2</code></td>
+      <td><span class="pkg-tag" style="background:#f0fff4;color:#276749">prod</span></td>
+      <td>npm</td>
+      <td></td>
+    </tr></tbody>
+      </table>
+      
+    </div>
+  </div>
+
+</div>
+  </div>
+</div>
+
+<script>
+const ALL_DATA = {"services":[{"name":"osv-ui","dir":"/Users/toannm/Projects/osv-ui","ecosystem":"npm","ecosystems":["npm"],"manifests":[{"type":"npm","source":"npm","lockVersion":3}],"packages":[{"name":"accepts","version":"1.3.8","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/accepts/-/accepts-1.3.8.tgz","registry":"https://www.npmjs.com/package/accepts"},{"name":"array-flatten","version":"1.1.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz","registry":"https://www.npmjs.com/package/array-flatten"},{"name":"big-integer","version":"1.6.52","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/big-integer/-/big-integer-1.6.52.tgz","registry":"https://www.npmjs.com/package/big-integer"},{"name":"body-parser","version":"1.20.4","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/body-parser/-/body-parser-1.20.4.tgz","registry":"https://www.npmjs.com/package/body-parser"},{"name":"bplist-parser","version":"0.2.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/bplist-parser/-/bplist-parser-0.2.0.tgz","registry":"https://www.npmjs.com/package/bplist-parser"},{"name":"bundle-name","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/bundle-name/-/bundle-name-3.0.0.tgz","registry":"https://www.npmjs.com/package/bundle-name"},{"name":"bytes","version":"3.1.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz","registry":"https://www.npmjs.com/package/bytes"},{"name":"call-bind-apply-helpers","version":"1.0.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz","registry":"https://www.npmjs.com/package/call-bind-apply-helpers"},{"name":"call-bound","version":"1.0.4","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz","registry":"https://www.npmjs.com/package/call-bound"},{"name":"content-disposition","version":"0.5.4","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/content-disposition/-/content-disposition-0.5.4.tgz","registry":"https://www.npmjs.com/package/content-disposition"},{"name":"content-type","version":"1.0.5","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz","registry":"https://www.npmjs.com/package/content-type"},{"name":"cookie","version":"0.7.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz","registry":"https://www.npmjs.com/package/cookie"},{"name":"cookie-signature","version":"1.0.7","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz","registry":"https://www.npmjs.com/package/cookie-signature"},{"name":"cross-spawn","version":"7.0.6","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz","registry":"https://www.npmjs.com/package/cross-spawn"},{"name":"debug","version":"2.6.9","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/debug/-/debug-2.6.9.tgz","registry":"https://www.npmjs.com/package/debug"},{"name":"default-browser","version":"4.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/default-browser/-/default-browser-4.0.0.tgz","registry":"https://www.npmjs.com/package/default-browser"},{"name":"default-browser-id","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/default-browser-id/-/default-browser-id-3.0.0.tgz","registry":"https://www.npmjs.com/package/default-browser-id"},{"name":"define-lazy-prop","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/define-lazy-prop/-/define-lazy-prop-3.0.0.tgz","registry":"https://www.npmjs.com/package/define-lazy-prop"},{"name":"depd","version":"2.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/depd/-/depd-2.0.0.tgz","registry":"https://www.npmjs.com/package/depd"},{"name":"destroy","version":"1.2.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz","registry":"https://www.npmjs.com/package/destroy"},{"name":"dunder-proto","version":"1.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz","registry":"https://www.npmjs.com/package/dunder-proto"},{"name":"ee-first","version":"1.1.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz","registry":"https://www.npmjs.com/package/ee-first"},{"name":"encodeurl","version":"2.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz","registry":"https://www.npmjs.com/package/encodeurl"},{"name":"es-define-property","version":"1.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz","registry":"https://www.npmjs.com/package/es-define-property"},{"name":"es-errors","version":"1.3.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz","registry":"https://www.npmjs.com/package/es-errors"},{"name":"es-object-atoms","version":"1.1.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.1.tgz","registry":"https://www.npmjs.com/package/es-object-atoms"},{"name":"escape-html","version":"1.0.3","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz","registry":"https://www.npmjs.com/package/escape-html"},{"name":"etag","version":"1.8.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/etag/-/etag-1.8.1.tgz","registry":"https://www.npmjs.com/package/etag"},{"name":"execa","version":"7.2.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/execa/-/execa-7.2.0.tgz","registry":"https://www.npmjs.com/package/execa"},{"name":"express","version":"4.22.1","ecosystem":"npm","isDirect":true,"dev":false,"resolved":"https://registry.npmjs.org/express/-/express-4.22.1.tgz","registry":"https://www.npmjs.com/package/express"},{"name":"finalhandler","version":"1.3.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/finalhandler/-/finalhandler-1.3.2.tgz","registry":"https://www.npmjs.com/package/finalhandler"},{"name":"forwarded","version":"0.2.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz","registry":"https://www.npmjs.com/package/forwarded"},{"name":"fresh","version":"0.5.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/fresh/-/fresh-0.5.2.tgz","registry":"https://www.npmjs.com/package/fresh"},{"name":"function-bind","version":"1.1.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz","registry":"https://www.npmjs.com/package/function-bind"},{"name":"get-intrinsic","version":"1.3.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz","registry":"https://www.npmjs.com/package/get-intrinsic"},{"name":"get-proto","version":"1.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz","registry":"https://www.npmjs.com/package/get-proto"},{"name":"get-stream","version":"6.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/get-stream/-/get-stream-6.0.1.tgz","registry":"https://www.npmjs.com/package/get-stream"},{"name":"gopd","version":"1.2.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz","registry":"https://www.npmjs.com/package/gopd"},{"name":"has-symbols","version":"1.1.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz","registry":"https://www.npmjs.com/package/has-symbols"},{"name":"hasown","version":"2.0.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/hasown/-/hasown-2.0.2.tgz","registry":"https://www.npmjs.com/package/hasown"},{"name":"http-errors","version":"2.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz","registry":"https://www.npmjs.com/package/http-errors"},{"name":"human-signals","version":"4.3.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/human-signals/-/human-signals-4.3.1.tgz","registry":"https://www.npmjs.com/package/human-signals"},{"name":"iconv-lite","version":"0.4.24","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz","registry":"https://www.npmjs.com/package/iconv-lite"},{"name":"inherits","version":"2.0.4","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz","registry":"https://www.npmjs.com/package/inherits"},{"name":"ipaddr.js","version":"1.9.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz","registry":"https://www.npmjs.com/package/ipaddr.js"},{"name":"is-docker","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/is-docker/-/is-docker-3.0.0.tgz","registry":"https://www.npmjs.com/package/is-docker"},{"name":"is-inside-container","version":"1.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/is-inside-container/-/is-inside-container-1.0.0.tgz","registry":"https://www.npmjs.com/package/is-inside-container"},{"name":"is-stream","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/is-stream/-/is-stream-3.0.0.tgz","registry":"https://www.npmjs.com/package/is-stream"},{"name":"is-wsl","version":"2.2.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/is-wsl/-/is-wsl-2.2.0.tgz","registry":"https://www.npmjs.com/package/is-wsl"},{"name":"is-wsl/is-docker","version":"2.2.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/is-docker/-/is-docker-2.2.1.tgz","registry":"https://www.npmjs.com/package/is-wsl/is-docker"},{"name":"isexe","version":"2.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz","registry":"https://www.npmjs.com/package/isexe"},{"name":"math-intrinsics","version":"1.1.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz","registry":"https://www.npmjs.com/package/math-intrinsics"},{"name":"media-typer","version":"0.3.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz","registry":"https://www.npmjs.com/package/media-typer"},{"name":"merge-descriptors","version":"1.0.3","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.3.tgz","registry":"https://www.npmjs.com/package/merge-descriptors"},{"name":"merge-stream","version":"2.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/merge-stream/-/merge-stream-2.0.0.tgz","registry":"https://www.npmjs.com/package/merge-stream"},{"name":"methods","version":"1.1.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/methods/-/methods-1.1.2.tgz","registry":"https://www.npmjs.com/package/methods"},{"name":"mime","version":"1.6.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/mime/-/mime-1.6.0.tgz","registry":"https://www.npmjs.com/package/mime"},{"name":"mime-db","version":"1.52.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz","registry":"https://www.npmjs.com/package/mime-db"},{"name":"mime-types","version":"2.1.35","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz","registry":"https://www.npmjs.com/package/mime-types"},{"name":"mimic-fn","version":"4.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/mimic-fn/-/mimic-fn-4.0.0.tgz","registry":"https://www.npmjs.com/package/mimic-fn"},{"name":"ms","version":"2.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/ms/-/ms-2.0.0.tgz","registry":"https://www.npmjs.com/package/ms"},{"name":"negotiator","version":"0.6.3","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz","registry":"https://www.npmjs.com/package/negotiator"},{"name":"npm-run-path","version":"5.3.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/npm-run-path/-/npm-run-path-5.3.0.tgz","registry":"https://www.npmjs.com/package/npm-run-path"},{"name":"npm-run-path/path-key","version":"4.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/path-key/-/path-key-4.0.0.tgz","registry":"https://www.npmjs.com/package/npm-run-path/path-key"},{"name":"object-inspect","version":"1.13.4","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz","registry":"https://www.npmjs.com/package/object-inspect"},{"name":"on-finished","version":"2.4.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz","registry":"https://www.npmjs.com/package/on-finished"},{"name":"onetime","version":"6.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/onetime/-/onetime-6.0.0.tgz","registry":"https://www.npmjs.com/package/onetime"},{"name":"open","version":"9.1.0","ecosystem":"npm","isDirect":true,"dev":false,"resolved":"https://registry.npmjs.org/open/-/open-9.1.0.tgz","registry":"https://www.npmjs.com/package/open"},{"name":"parseurl","version":"1.3.3","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz","registry":"https://www.npmjs.com/package/parseurl"},{"name":"path-key","version":"3.1.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/path-key/-/path-key-3.1.1.tgz","registry":"https://www.npmjs.com/package/path-key"},{"name":"path-to-regexp","version":"0.1.12","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.12.tgz","registry":"https://www.npmjs.com/package/path-to-regexp"},{"name":"proxy-addr","version":"2.0.7","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.7.tgz","registry":"https://www.npmjs.com/package/proxy-addr"},{"name":"qs","version":"6.14.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/qs/-/qs-6.14.2.tgz","registry":"https://www.npmjs.com/package/qs"},{"name":"range-parser","version":"1.2.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz","registry":"https://www.npmjs.com/package/range-parser"},{"name":"raw-body","version":"2.5.3","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/raw-body/-/raw-body-2.5.3.tgz","registry":"https://www.npmjs.com/package/raw-body"},{"name":"run-applescript","version":"5.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/run-applescript/-/run-applescript-5.0.0.tgz","registry":"https://www.npmjs.com/package/run-applescript"},{"name":"run-applescript/execa","version":"5.1.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/execa/-/execa-5.1.1.tgz","registry":"https://www.npmjs.com/package/run-applescript/execa"},{"name":"run-applescript/human-signals","version":"2.1.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/human-signals/-/human-signals-2.1.0.tgz","registry":"https://www.npmjs.com/package/run-applescript/human-signals"},{"name":"run-applescript/is-stream","version":"2.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/is-stream/-/is-stream-2.0.1.tgz","registry":"https://www.npmjs.com/package/run-applescript/is-stream"},{"name":"run-applescript/mimic-fn","version":"2.1.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/mimic-fn/-/mimic-fn-2.1.0.tgz","registry":"https://www.npmjs.com/package/run-applescript/mimic-fn"},{"name":"run-applescript/npm-run-path","version":"4.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/npm-run-path/-/npm-run-path-4.0.1.tgz","registry":"https://www.npmjs.com/package/run-applescript/npm-run-path"},{"name":"run-applescript/onetime","version":"5.1.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/onetime/-/onetime-5.1.2.tgz","registry":"https://www.npmjs.com/package/run-applescript/onetime"},{"name":"run-applescript/strip-final-newline","version":"2.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/strip-final-newline/-/strip-final-newline-2.0.0.tgz","registry":"https://www.npmjs.com/package/run-applescript/strip-final-newline"},{"name":"safe-buffer","version":"5.2.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz","registry":"https://www.npmjs.com/package/safe-buffer"},{"name":"safer-buffer","version":"2.1.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz","registry":"https://www.npmjs.com/package/safer-buffer"},{"name":"send","version":"0.19.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/send/-/send-0.19.2.tgz","registry":"https://www.npmjs.com/package/send"},{"name":"send/ms","version":"2.1.3","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/ms/-/ms-2.1.3.tgz","registry":"https://www.npmjs.com/package/send/ms"},{"name":"serve-static","version":"1.16.3","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/serve-static/-/serve-static-1.16.3.tgz","registry":"https://www.npmjs.com/package/serve-static"},{"name":"setprototypeof","version":"1.2.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz","registry":"https://www.npmjs.com/package/setprototypeof"},{"name":"shebang-command","version":"2.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz","registry":"https://www.npmjs.com/package/shebang-command"},{"name":"shebang-regex","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/shebang-regex/-/shebang-regex-3.0.0.tgz","registry":"https://www.npmjs.com/package/shebang-regex"},{"name":"side-channel","version":"1.1.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/side-channel/-/side-channel-1.1.0.tgz","registry":"https://www.npmjs.com/package/side-channel"},{"name":"side-channel-list","version":"1.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.0.tgz","registry":"https://www.npmjs.com/package/side-channel-list"},{"name":"side-channel-map","version":"1.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz","registry":"https://www.npmjs.com/package/side-channel-map"},{"name":"side-channel-weakmap","version":"1.0.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz","registry":"https://www.npmjs.com/package/side-channel-weakmap"},{"name":"signal-exit","version":"3.0.7","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/signal-exit/-/signal-exit-3.0.7.tgz","registry":"https://www.npmjs.com/package/signal-exit"},{"name":"statuses","version":"2.0.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz","registry":"https://www.npmjs.com/package/statuses"},{"name":"strip-final-newline","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/strip-final-newline/-/strip-final-newline-3.0.0.tgz","registry":"https://www.npmjs.com/package/strip-final-newline"},{"name":"titleize","version":"3.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/titleize/-/titleize-3.0.0.tgz","registry":"https://www.npmjs.com/package/titleize"},{"name":"toidentifier","version":"1.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz","registry":"https://www.npmjs.com/package/toidentifier"},{"name":"type-is","version":"1.6.18","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz","registry":"https://www.npmjs.com/package/type-is"},{"name":"unpipe","version":"1.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz","registry":"https://www.npmjs.com/package/unpipe"},{"name":"untildify","version":"4.0.0","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/untildify/-/untildify-4.0.0.tgz","registry":"https://www.npmjs.com/package/untildify"},{"name":"utils-merge","version":"1.0.1","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz","registry":"https://www.npmjs.com/package/utils-merge"},{"name":"vary","version":"1.1.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/vary/-/vary-1.1.2.tgz","registry":"https://www.npmjs.com/package/vary"},{"name":"which","version":"2.0.2","ecosystem":"npm","isDirect":false,"dev":false,"resolved":"https://registry.npmjs.org/which/-/which-2.0.2.tgz","registry":"https://www.npmjs.com/package/which"}],"totalPackages":106,"directCount":2,"vulns":[],"severity":{"critical":0,"high":0,"moderate":0,"low":0,"unknown":0},"riskScore":0,"noOsv":false,"scannedAt":"2026-03-21T02:59:37.624Z"}]};
+
+function showService(idx, el) {
+  document.querySelectorAll('.svc-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('svc-' + idx).classList.add('active');
+  el.classList.add('active');
+}
+
+function showTab(svcIdx, tabName) {
+  const panel = document.getElementById('svc-' + svcIdx);
+  panel.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+  panel.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+}
+
+// Risk bar animations on load
+window.addEventListener('load', () => {
+  document.querySelectorAll('.risk-fill[data-score]').forEach(el => {
+    setTimeout(() => el.style.width = el.dataset.score + '%', 150);
+  });
+});
+
+// Vuln filter
+function filterVulns(svcIdx, sev, btn) {
+  const panel = document.getElementById('svc-' + svcIdx);
+  panel.querySelectorAll('.sev-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyVulnFilters(svcIdx);
+}
+function searchVulns(svcIdx, q) { applyVulnFilters(svcIdx); }
+function applyVulnFilters(svcIdx) {
+  const panel = document.getElementById('svc-' + svcIdx);
+  const activeBtn = panel.querySelector('.sev-filter.active');
+  const curSev = activeBtn?.dataset.sev || 'all';
+  const search = panel.querySelector('.vuln-search')?.value?.toLowerCase() || '';
+  panel.querySelectorAll('.vuln-row').forEach(row => {
+    const sevMatch = curSev === 'all' || row.dataset.severity === curSev;
+    const searchMatch = !search || row.dataset.pkg?.includes(search);
+    row.style.display = sevMatch && searchMatch ? '' : 'none';
+    // also hide the detail row below it
+    const next = row.nextElementSibling;
+    if (next?.classList.contains('detail-row')) next.style.display = 'none';
+  });
+}
+
+// Package filter
+function filterPkgs(svcIdx, type, btn) {
+  const panel = document.getElementById('svc-' + svcIdx);
+  panel.querySelectorAll('.pkg-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const search = panel.querySelector('.pkg-search')?.value?.toLowerCase() || '';
+  panel.querySelectorAll('.pkg-row').forEach(row => {
+    const typeMatch = type === 'all' || row.dataset.type === type;
+    const searchMatch = !search || row.dataset.name?.includes(search);
+    row.style.display = typeMatch && searchMatch ? '' : 'none';
+  });
+}
+function searchPkgs(svcIdx, q) {
+  const panel = document.getElementById('svc-' + svcIdx);
+  const activeBtn = panel.querySelector('.pkg-filter.active');
+  const type = activeBtn?.dataset.type || 'all';
+  filterPkgs(svcIdx, type, activeBtn || panel.querySelector('.pkg-filter'));
+}
+
+// Toggle vuln detail row
+function toggleDetail(rowId) {
+  const row = document.getElementById('detail-' + rowId);
+  if (!row) return;
+  const isOpen = row.classList.contains('show');
+  // close all in same table
+  row.closest('table').querySelectorAll('.detail-row.show').forEach(r => {
+    r.classList.remove('show');
+    r.style.display = 'none';
+  });
+  if (!isOpen) {
+    row.classList.add('show');
+    row.style.display = 'table-row';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+// Copy fix command
+function copyCmd(btn, cmd) {
+  navigator.clipboard?.writeText(cmd).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+// Donut charts
+function drawDonut(canvasId, segments, cx=60, cy=60, r=44, hole=26) {
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  const total = segments.reduce((s, x) => s + x.v, 0);
+  if (!total) { el.innerHTML = '<text x="' + cx + '" y="' + (cy+4) + '" text-anchor="middle" font-size="10" fill="#a0aec0">no data</text>'; return; }
+  let angle = -90, paths = '';
+  segments.forEach(seg => {
+    if (!seg.v) return;
+    const a1 = angle * Math.PI / 180;
+    const deg = (seg.v / total) * 360; angle += deg;
+    const a2 = angle * Math.PI / 180, lg = deg > 180 ? 1 : 0;
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    const ix1=cx+hole*Math.cos(a1), iy1=cy+hole*Math.sin(a1);
+    const ix2=cx+hole*Math.cos(a2), iy2=cy+hole*Math.sin(a2);
+    paths += '<path d="M'+ix1+','+iy1+'L'+x1+','+y1+'A'+r+','+r+' 0 '+lg+' 1 '+x2+','+y2+'L'+ix2+','+iy2+'A'+hole+','+hole+' 0 '+lg+' 0 '+ix1+','+iy1+'" fill="'+seg.c+'" opacity=".9"/>';
+  });
+  el.innerHTML = paths +
+    '<text x="'+cx+'" y="'+(cy-4)+'" text-anchor="middle" font-size="15" font-weight="700" fill="#1a202c">'+total+'</text>' +
+    '<text x="'+cx+'" y="'+(cy+11)+'" text-anchor="middle" font-size="9" fill="#718096">total</text>';
+}
+
+window.addEventListener('load', () => {
+  ALL_DATA.services.forEach((svc, i) => {
+    const s = svc.severity;
+    drawDonut('donut-sev-'+i, [
+      {v:s.critical, c:'#e53e3e', l:'Critical'},
+      {v:s.high,     c:'#dd6b20', l:'High'},
+      {v:s.moderate, c:'#d69e2e', l:'Moderate'},
+      {v:s.low,      c:'#3182ce', l:'Low'},
+    ]);
+    const fix = svc.vulns.filter(v => v.fixedIn).length;
+    const nofix = svc.vulns.length - fix;
+    drawDonut('donut-fix-'+i, [
+      {v:fix,   c:'#38a169', l:'Has fix'},
+      {v:nofix, c:'#fc8181', l:'No fix yet'},
+    ]);
+  });
+});
+</script>
+</body>
+</html>

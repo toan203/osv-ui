@@ -59,9 +59,10 @@ npx osv-ui
 | 📡 **实时 CVE 数据** | 由 [OSV.dev](https://osv.dev) 提供支持 — 每天从 NVD、GitHub Advisory、PyPI Advisory 更新。**无需 API 密钥。** |
 | 🏢 **多服务扫描** | 一条命令扫描整个 monorepo — 前端、后端、workers、ML 服务 |
 | 💊 **修复指南** | Dependabot 风格的升级表：当前版本 → 安全版本 + 一键复制命令 |
-| 🎯 **风险评分** | 每个服务 0–100 分，让你知道该优先处理哪里 |
-| 🔍 **CVE 详情** | 点击任意行查看：CVSS 评分、描述、NVD 链接、GitHub Advisory 链接 |
-| 🔌 **JSON API** | `GET /api/data` — 接入你自己的 CI 脚本或报告工具 |
+| 🔌 **内置 REST API** | 使用 `GET /api/data` 或 CLI 导出标志，构建自有的安全仪表板 |
+| 🎯 **风险评分** | 为每个服务提供 0–100 的评分，让您知道该优先修复哪里 |
+| 🔍 **CVE 详情** | 点击任意行查看详情：CVSS 评分、描述、NVD 链接、GitHub Advisory 链接 |
+| 🌙 **深色模式** | 无论昼夜，提供更舒适的安全审计体验 |
 
 ---
 
@@ -94,10 +95,26 @@ npx osv-ui -d
 
 **所有选项：**
 ```
---discover, -d  自动查找包含支持的清单文件的服务目录
+--discover, -d  自动查找包含受支持清单文件的服务目录
 --port=2003     使用自定义端口（默认：2003）
+--json[=file]   将报告保存为 JSON（默认：osv-report.json）
+--html[=file]   将报告保存为 HTML（默认：osv-report.html）
 --no-open       不自动打开浏览器
 --offline       跳过 OSV.dev 查询 — 仅解析清单文件
+-h, --help      显示帮助信息
+```
+
+### 🔌 强大的内置 API
+
+`osv-ui` 不仅仅是一个仪表板；它还是一个安全数据引擎。  
+当仪表板运行时，您可以获取整个项目的原始安全数据：
+
+```bash
+# 获取所有服务的完整 JSON 数据
+curl http://localhost:2003/api/data
+
+# 在您的自定义脚本中使用
+curl -s http://localhost:2003/api/data | jq '.[0].vulns'
 ```
 
 ---
@@ -203,16 +220,15 @@ audit:
 
 欢迎所有贡献。如果你想开发某个功能，请先开启一个 issue，以便我们进行协调。
 
-- [x] **支持 Go** — 解析 `go.sum` / `go.mod`
-- [x] **支持 Rust** — 解析 `Cargo.lock`
+- [x] **Go 支持** — 解析 `go.sum` / `go.mod`
+- [x] **Rust 支持** — 解析 `Cargo.lock`
+- [x] **导出报告** — 保存为 HTML / JSON
+- [x] **深色模式** — 护眼的仪表板 UI
 - [ ] **Java / Maven** — 解析 `pom.xml`
-- [ ] **导出报告** — 保存为 HTML / PDF / JSON
 - [ ] **GitHub Actions** — 在 PR 上发布 CVE 差异评论
-- [ ] **导出 SBOM** — CycloneDX / SPDX 格式 (用于 Dependency-Track)
-- [ ] **监听模式 (Watch mode)** — 在清单文件更改时重新扫描
-- [ ] **历史 / 趋势** — 追踪每个分支随时间变化的 CVE 数量
-- [ ] **Slack / webhook** — 出现新的严重 CVE 时发出通知
-- [ ] **深色模式 (Dark mode)** — 仪表板 UI 的深色模式
+- [ ] **SBOM 导出** — CycloneDX / SPDX 格式
+- [ ] **监听模式** — 清单文件更改时自动重新扫描
+- [ ] **Slack / webhook** — 新出现的严重 CVE 通知
 
 ---
 
@@ -220,11 +236,10 @@ audit:
 
 本项目由社区构建。欢迎各种技能水平的开发者。
 
-**适合新手的 issue:**
-- 添加 Java/Maven 解析器 (`pom.xml`) — 参考 `src/parsers.js` 中的模式
-- 为仪表板 CSS 添加深色模式
+**适合入门的 Issue (Good first issue):**
+- 添加 Java/Maven 解析器 (`pom.xml`) — 请参考 `src/parsers.js` 中的模式
 - 为解析器编写单元测试
-- 改进 Python 解析器的边缘情况
+- 改进 Python 解析器的边缘情况处理
 
 ```bash
 # 克隆并在本地运行

@@ -59,9 +59,10 @@ npx osv-ui
 | 📡 **Live CVE data** | Powered by [OSV.dev](https://osv.dev) — updated daily from NVD, GitHub Advisory, PyPI Advisory. **No API key.** |
 | 🏢 **Multi-service** | Scan your entire monorepo in one command — frontend, backend, workers, ML services |
 | 💊 **Fix guide** | Dependabot-style upgrade table: current version → safe version + one-click copy command |
+| 🔌 **Built-in REST API** | Power your own security dashboards with `GET /api/data` or CLI export flags |
 | 🎯 **Risk score** | 0–100 per service so you know where to focus first |
 | 🔍 **CVE drill-down** | Click any row — CVSS score, description, NVD link, GitHub Advisory link |
-| 🔌 **JSON API** | `GET /api/data` — pipe into your own CI scripts or reporting tools |
+| 🌙 **Dark Mode** | Eye-friendly security audits, day or night |
 
 ---
 
@@ -92,12 +93,27 @@ npx osv-ui -d
 }
 ```
 
-**All options:**
 ```
---discover, -d  Auto-find service dirs that contain a supported manifest
---port=2003     Use a custom port (default: 2003)
---no-open       Don't auto-open the browser
---offline       Skip OSV.dev lookup — parse manifests only
+--discover, -d    Auto-find service dirs that contain a supported manifest
+--port=2003       Use a custom port (default: 2003)
+--json[=file]     Save report as JSON without opening browser (defaults to osv-report.json)
+--html[=file]     Save report as HTML without opening browser (defaults to osv-report.html)
+--no-open         Don't auto-open the browser
+--offline         Skip OSV.dev lookup — parse manifests only
+-h, --help        Show help message
+```
+
+### 🔌 Powerful built-in API
+
+`osv-ui` isn't just a dashboard; it's a security data engine.  
+Once the dashboard is running, you can pull the raw security data for your whole project:
+
+```bash
+# Get full JSON payload for all services
+curl http://localhost:2003/api/data
+
+# Use it in your custom scripts
+curl -s http://localhost:2003/api/data | jq '.[0].vulns'
 ```
 
 ---
@@ -205,14 +221,13 @@ All contributions are welcome. If you want to work on something, open an issue f
 
 - [x] **Go support** — parse `go.sum` / `go.mod`
 - [x] **Rust support** — parse `Cargo.lock`
+- [x] **Export report** — save as HTML / JSON
+- [x] **Dark mode** — eye-friendly dashboard UI
 - [ ] **Java / Maven** — parse `pom.xml`
-- [ ] **Export report** — save as HTML / PDF / JSON
 - [ ] **GitHub Actions** — post a CVE diff comment on PRs
-- [ ] **SBOM export** — CycloneDX / SPDX format (for Dependency-Track)
+- [ ] **SBOM export** — CycloneDX / SPDX format
 - [ ] **Watch mode** — re-scan on manifest file changes
-- [ ] **History / trend** — track CVE count per branch over time
 - [ ] **Slack / webhook** — notify on new critical CVEs
-- [ ] **Dark mode** — for the dashboard UI
 
 ---
 
@@ -222,7 +237,6 @@ This project is built by the community. All skill levels welcome.
 
 **Good first issues:**
 - Add Java/Maven parser (`pom.xml`) — follow the pattern in `src/parsers.js`
-- Add dark mode to the dashboard CSS
 - Write unit tests for the parsers
 - Improve Python parser edge cases
 

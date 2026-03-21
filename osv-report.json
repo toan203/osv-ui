@@ -1,0 +1,990 @@
+{
+  "services": [
+    {
+      "name": "osv-ui",
+      "dir": "/Users/toannm/Projects/osv-ui",
+      "ecosystem": "npm",
+      "ecosystems": [
+        "npm"
+      ],
+      "manifests": [
+        {
+          "type": "npm",
+          "source": "npm",
+          "lockVersion": 3
+        }
+      ],
+      "packages": [
+        {
+          "name": "accepts",
+          "version": "1.3.8",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/accepts/-/accepts-1.3.8.tgz",
+          "registry": "https://www.npmjs.com/package/accepts"
+        },
+        {
+          "name": "array-flatten",
+          "version": "1.1.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz",
+          "registry": "https://www.npmjs.com/package/array-flatten"
+        },
+        {
+          "name": "big-integer",
+          "version": "1.6.52",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/big-integer/-/big-integer-1.6.52.tgz",
+          "registry": "https://www.npmjs.com/package/big-integer"
+        },
+        {
+          "name": "body-parser",
+          "version": "1.20.4",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/body-parser/-/body-parser-1.20.4.tgz",
+          "registry": "https://www.npmjs.com/package/body-parser"
+        },
+        {
+          "name": "bplist-parser",
+          "version": "0.2.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/bplist-parser/-/bplist-parser-0.2.0.tgz",
+          "registry": "https://www.npmjs.com/package/bplist-parser"
+        },
+        {
+          "name": "bundle-name",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/bundle-name/-/bundle-name-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/bundle-name"
+        },
+        {
+          "name": "bytes",
+          "version": "3.1.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz",
+          "registry": "https://www.npmjs.com/package/bytes"
+        },
+        {
+          "name": "call-bind-apply-helpers",
+          "version": "1.0.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz",
+          "registry": "https://www.npmjs.com/package/call-bind-apply-helpers"
+        },
+        {
+          "name": "call-bound",
+          "version": "1.0.4",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz",
+          "registry": "https://www.npmjs.com/package/call-bound"
+        },
+        {
+          "name": "content-disposition",
+          "version": "0.5.4",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/content-disposition/-/content-disposition-0.5.4.tgz",
+          "registry": "https://www.npmjs.com/package/content-disposition"
+        },
+        {
+          "name": "content-type",
+          "version": "1.0.5",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz",
+          "registry": "https://www.npmjs.com/package/content-type"
+        },
+        {
+          "name": "cookie",
+          "version": "0.7.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz",
+          "registry": "https://www.npmjs.com/package/cookie"
+        },
+        {
+          "name": "cookie-signature",
+          "version": "1.0.7",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz",
+          "registry": "https://www.npmjs.com/package/cookie-signature"
+        },
+        {
+          "name": "cross-spawn",
+          "version": "7.0.6",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
+          "registry": "https://www.npmjs.com/package/cross-spawn"
+        },
+        {
+          "name": "debug",
+          "version": "2.6.9",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/debug/-/debug-2.6.9.tgz",
+          "registry": "https://www.npmjs.com/package/debug"
+        },
+        {
+          "name": "default-browser",
+          "version": "4.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/default-browser/-/default-browser-4.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/default-browser"
+        },
+        {
+          "name": "default-browser-id",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/default-browser-id/-/default-browser-id-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/default-browser-id"
+        },
+        {
+          "name": "define-lazy-prop",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/define-lazy-prop/-/define-lazy-prop-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/define-lazy-prop"
+        },
+        {
+          "name": "depd",
+          "version": "2.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/depd/-/depd-2.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/depd"
+        },
+        {
+          "name": "destroy",
+          "version": "1.2.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz",
+          "registry": "https://www.npmjs.com/package/destroy"
+        },
+        {
+          "name": "dunder-proto",
+          "version": "1.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/dunder-proto"
+        },
+        {
+          "name": "ee-first",
+          "version": "1.1.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz",
+          "registry": "https://www.npmjs.com/package/ee-first"
+        },
+        {
+          "name": "encodeurl",
+          "version": "2.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/encodeurl"
+        },
+        {
+          "name": "es-define-property",
+          "version": "1.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/es-define-property"
+        },
+        {
+          "name": "es-errors",
+          "version": "1.3.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz",
+          "registry": "https://www.npmjs.com/package/es-errors"
+        },
+        {
+          "name": "es-object-atoms",
+          "version": "1.1.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.1.tgz",
+          "registry": "https://www.npmjs.com/package/es-object-atoms"
+        },
+        {
+          "name": "escape-html",
+          "version": "1.0.3",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz",
+          "registry": "https://www.npmjs.com/package/escape-html"
+        },
+        {
+          "name": "etag",
+          "version": "1.8.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/etag/-/etag-1.8.1.tgz",
+          "registry": "https://www.npmjs.com/package/etag"
+        },
+        {
+          "name": "execa",
+          "version": "7.2.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/execa/-/execa-7.2.0.tgz",
+          "registry": "https://www.npmjs.com/package/execa"
+        },
+        {
+          "name": "express",
+          "version": "4.22.1",
+          "ecosystem": "npm",
+          "isDirect": true,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/express/-/express-4.22.1.tgz",
+          "registry": "https://www.npmjs.com/package/express"
+        },
+        {
+          "name": "finalhandler",
+          "version": "1.3.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/finalhandler/-/finalhandler-1.3.2.tgz",
+          "registry": "https://www.npmjs.com/package/finalhandler"
+        },
+        {
+          "name": "forwarded",
+          "version": "0.2.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz",
+          "registry": "https://www.npmjs.com/package/forwarded"
+        },
+        {
+          "name": "fresh",
+          "version": "0.5.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/fresh/-/fresh-0.5.2.tgz",
+          "registry": "https://www.npmjs.com/package/fresh"
+        },
+        {
+          "name": "function-bind",
+          "version": "1.1.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz",
+          "registry": "https://www.npmjs.com/package/function-bind"
+        },
+        {
+          "name": "get-intrinsic",
+          "version": "1.3.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz",
+          "registry": "https://www.npmjs.com/package/get-intrinsic"
+        },
+        {
+          "name": "get-proto",
+          "version": "1.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/get-proto"
+        },
+        {
+          "name": "get-stream",
+          "version": "6.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/get-stream/-/get-stream-6.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/get-stream"
+        },
+        {
+          "name": "gopd",
+          "version": "1.2.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz",
+          "registry": "https://www.npmjs.com/package/gopd"
+        },
+        {
+          "name": "has-symbols",
+          "version": "1.1.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz",
+          "registry": "https://www.npmjs.com/package/has-symbols"
+        },
+        {
+          "name": "hasown",
+          "version": "2.0.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/hasown/-/hasown-2.0.2.tgz",
+          "registry": "https://www.npmjs.com/package/hasown"
+        },
+        {
+          "name": "http-errors",
+          "version": "2.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/http-errors"
+        },
+        {
+          "name": "human-signals",
+          "version": "4.3.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/human-signals/-/human-signals-4.3.1.tgz",
+          "registry": "https://www.npmjs.com/package/human-signals"
+        },
+        {
+          "name": "iconv-lite",
+          "version": "0.4.24",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz",
+          "registry": "https://www.npmjs.com/package/iconv-lite"
+        },
+        {
+          "name": "inherits",
+          "version": "2.0.4",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz",
+          "registry": "https://www.npmjs.com/package/inherits"
+        },
+        {
+          "name": "ipaddr.js",
+          "version": "1.9.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz",
+          "registry": "https://www.npmjs.com/package/ipaddr.js"
+        },
+        {
+          "name": "is-docker",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/is-docker/-/is-docker-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/is-docker"
+        },
+        {
+          "name": "is-inside-container",
+          "version": "1.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/is-inside-container/-/is-inside-container-1.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/is-inside-container"
+        },
+        {
+          "name": "is-stream",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/is-stream/-/is-stream-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/is-stream"
+        },
+        {
+          "name": "is-wsl",
+          "version": "2.2.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/is-wsl/-/is-wsl-2.2.0.tgz",
+          "registry": "https://www.npmjs.com/package/is-wsl"
+        },
+        {
+          "name": "is-wsl/is-docker",
+          "version": "2.2.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/is-docker/-/is-docker-2.2.1.tgz",
+          "registry": "https://www.npmjs.com/package/is-wsl/is-docker"
+        },
+        {
+          "name": "isexe",
+          "version": "2.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/isexe"
+        },
+        {
+          "name": "math-intrinsics",
+          "version": "1.1.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz",
+          "registry": "https://www.npmjs.com/package/math-intrinsics"
+        },
+        {
+          "name": "media-typer",
+          "version": "0.3.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz",
+          "registry": "https://www.npmjs.com/package/media-typer"
+        },
+        {
+          "name": "merge-descriptors",
+          "version": "1.0.3",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.3.tgz",
+          "registry": "https://www.npmjs.com/package/merge-descriptors"
+        },
+        {
+          "name": "merge-stream",
+          "version": "2.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/merge-stream/-/merge-stream-2.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/merge-stream"
+        },
+        {
+          "name": "methods",
+          "version": "1.1.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/methods/-/methods-1.1.2.tgz",
+          "registry": "https://www.npmjs.com/package/methods"
+        },
+        {
+          "name": "mime",
+          "version": "1.6.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/mime/-/mime-1.6.0.tgz",
+          "registry": "https://www.npmjs.com/package/mime"
+        },
+        {
+          "name": "mime-db",
+          "version": "1.52.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz",
+          "registry": "https://www.npmjs.com/package/mime-db"
+        },
+        {
+          "name": "mime-types",
+          "version": "2.1.35",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz",
+          "registry": "https://www.npmjs.com/package/mime-types"
+        },
+        {
+          "name": "mimic-fn",
+          "version": "4.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/mimic-fn/-/mimic-fn-4.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/mimic-fn"
+        },
+        {
+          "name": "ms",
+          "version": "2.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/ms"
+        },
+        {
+          "name": "negotiator",
+          "version": "0.6.3",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz",
+          "registry": "https://www.npmjs.com/package/negotiator"
+        },
+        {
+          "name": "npm-run-path",
+          "version": "5.3.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/npm-run-path/-/npm-run-path-5.3.0.tgz",
+          "registry": "https://www.npmjs.com/package/npm-run-path"
+        },
+        {
+          "name": "npm-run-path/path-key",
+          "version": "4.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/path-key/-/path-key-4.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/npm-run-path/path-key"
+        },
+        {
+          "name": "object-inspect",
+          "version": "1.13.4",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz",
+          "registry": "https://www.npmjs.com/package/object-inspect"
+        },
+        {
+          "name": "on-finished",
+          "version": "2.4.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz",
+          "registry": "https://www.npmjs.com/package/on-finished"
+        },
+        {
+          "name": "onetime",
+          "version": "6.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/onetime/-/onetime-6.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/onetime"
+        },
+        {
+          "name": "open",
+          "version": "9.1.0",
+          "ecosystem": "npm",
+          "isDirect": true,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/open/-/open-9.1.0.tgz",
+          "registry": "https://www.npmjs.com/package/open"
+        },
+        {
+          "name": "parseurl",
+          "version": "1.3.3",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz",
+          "registry": "https://www.npmjs.com/package/parseurl"
+        },
+        {
+          "name": "path-key",
+          "version": "3.1.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/path-key/-/path-key-3.1.1.tgz",
+          "registry": "https://www.npmjs.com/package/path-key"
+        },
+        {
+          "name": "path-to-regexp",
+          "version": "0.1.12",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.12.tgz",
+          "registry": "https://www.npmjs.com/package/path-to-regexp"
+        },
+        {
+          "name": "proxy-addr",
+          "version": "2.0.7",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.7.tgz",
+          "registry": "https://www.npmjs.com/package/proxy-addr"
+        },
+        {
+          "name": "qs",
+          "version": "6.14.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/qs/-/qs-6.14.2.tgz",
+          "registry": "https://www.npmjs.com/package/qs"
+        },
+        {
+          "name": "range-parser",
+          "version": "1.2.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz",
+          "registry": "https://www.npmjs.com/package/range-parser"
+        },
+        {
+          "name": "raw-body",
+          "version": "2.5.3",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/raw-body/-/raw-body-2.5.3.tgz",
+          "registry": "https://www.npmjs.com/package/raw-body"
+        },
+        {
+          "name": "run-applescript",
+          "version": "5.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/run-applescript/-/run-applescript-5.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript"
+        },
+        {
+          "name": "run-applescript/execa",
+          "version": "5.1.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/execa/-/execa-5.1.1.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript/execa"
+        },
+        {
+          "name": "run-applescript/human-signals",
+          "version": "2.1.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/human-signals/-/human-signals-2.1.0.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript/human-signals"
+        },
+        {
+          "name": "run-applescript/is-stream",
+          "version": "2.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/is-stream/-/is-stream-2.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript/is-stream"
+        },
+        {
+          "name": "run-applescript/mimic-fn",
+          "version": "2.1.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/mimic-fn/-/mimic-fn-2.1.0.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript/mimic-fn"
+        },
+        {
+          "name": "run-applescript/npm-run-path",
+          "version": "4.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/npm-run-path/-/npm-run-path-4.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript/npm-run-path"
+        },
+        {
+          "name": "run-applescript/onetime",
+          "version": "5.1.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/onetime/-/onetime-5.1.2.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript/onetime"
+        },
+        {
+          "name": "run-applescript/strip-final-newline",
+          "version": "2.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/strip-final-newline/-/strip-final-newline-2.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/run-applescript/strip-final-newline"
+        },
+        {
+          "name": "safe-buffer",
+          "version": "5.2.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz",
+          "registry": "https://www.npmjs.com/package/safe-buffer"
+        },
+        {
+          "name": "safer-buffer",
+          "version": "2.1.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz",
+          "registry": "https://www.npmjs.com/package/safer-buffer"
+        },
+        {
+          "name": "send",
+          "version": "0.19.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/send/-/send-0.19.2.tgz",
+          "registry": "https://www.npmjs.com/package/send"
+        },
+        {
+          "name": "send/ms",
+          "version": "2.1.3",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+          "registry": "https://www.npmjs.com/package/send/ms"
+        },
+        {
+          "name": "serve-static",
+          "version": "1.16.3",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/serve-static/-/serve-static-1.16.3.tgz",
+          "registry": "https://www.npmjs.com/package/serve-static"
+        },
+        {
+          "name": "setprototypeof",
+          "version": "1.2.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz",
+          "registry": "https://www.npmjs.com/package/setprototypeof"
+        },
+        {
+          "name": "shebang-command",
+          "version": "2.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/shebang-command"
+        },
+        {
+          "name": "shebang-regex",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/shebang-regex/-/shebang-regex-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/shebang-regex"
+        },
+        {
+          "name": "side-channel",
+          "version": "1.1.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/side-channel/-/side-channel-1.1.0.tgz",
+          "registry": "https://www.npmjs.com/package/side-channel"
+        },
+        {
+          "name": "side-channel-list",
+          "version": "1.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/side-channel-list"
+        },
+        {
+          "name": "side-channel-map",
+          "version": "1.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/side-channel-map"
+        },
+        {
+          "name": "side-channel-weakmap",
+          "version": "1.0.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz",
+          "registry": "https://www.npmjs.com/package/side-channel-weakmap"
+        },
+        {
+          "name": "signal-exit",
+          "version": "3.0.7",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/signal-exit/-/signal-exit-3.0.7.tgz",
+          "registry": "https://www.npmjs.com/package/signal-exit"
+        },
+        {
+          "name": "statuses",
+          "version": "2.0.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz",
+          "registry": "https://www.npmjs.com/package/statuses"
+        },
+        {
+          "name": "strip-final-newline",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/strip-final-newline/-/strip-final-newline-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/strip-final-newline"
+        },
+        {
+          "name": "titleize",
+          "version": "3.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/titleize/-/titleize-3.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/titleize"
+        },
+        {
+          "name": "toidentifier",
+          "version": "1.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/toidentifier"
+        },
+        {
+          "name": "type-is",
+          "version": "1.6.18",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz",
+          "registry": "https://www.npmjs.com/package/type-is"
+        },
+        {
+          "name": "unpipe",
+          "version": "1.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/unpipe"
+        },
+        {
+          "name": "untildify",
+          "version": "4.0.0",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/untildify/-/untildify-4.0.0.tgz",
+          "registry": "https://www.npmjs.com/package/untildify"
+        },
+        {
+          "name": "utils-merge",
+          "version": "1.0.1",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz",
+          "registry": "https://www.npmjs.com/package/utils-merge"
+        },
+        {
+          "name": "vary",
+          "version": "1.1.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/vary/-/vary-1.1.2.tgz",
+          "registry": "https://www.npmjs.com/package/vary"
+        },
+        {
+          "name": "which",
+          "version": "2.0.2",
+          "ecosystem": "npm",
+          "isDirect": false,
+          "dev": false,
+          "resolved": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
+          "registry": "https://www.npmjs.com/package/which"
+        }
+      ],
+      "totalPackages": 106,
+      "directCount": 2,
+      "vulns": [],
+      "severity": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "unknown": 0
+      },
+      "riskScore": 0,
+      "noOsv": false,
+      "scannedAt": "2026-03-21T02:59:28.935Z"
+    }
+  ],
+  "scannedAt": "2026-03-21T02:59:28.936Z",
+  "noOsv": false
+}

@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { join, basename, resolve } from 'path';
 
 // ── npm: parse package-lock.json v2/v3 ──────────────────────────────────────
 export function parseNpm(dir) {
@@ -34,7 +34,7 @@ export function parseNpm(dir) {
     .filter(p => p.version !== '0.0.0');
 
   return {
-    name: pkg.name || 'npm-project',
+    name: pkg.name || basename(resolve(dir)) || 'npm-project',
     version: pkg.version || '0.0.0',
     ecosystem: 'npm',
     lockVersion: lock.lockfileVersion,
@@ -250,9 +250,19 @@ export function parseManifests(dir) {
   // Go
   const goPackages = parseGo(dir);
   if (goPackages && goPackages.length > 0) {
+    let goName = basename(resolve(dir)) || 'go-project';
+    try {
+      const modPath = join(dir, 'go.mod');
+      if (existsSync(modPath)) {
+        const modContent = readFileSync(modPath, 'utf8');
+        const match = modContent.match(/^module\s+([^\s]+)/m);
+        if (match) goName = match[1].split('/').pop();
+      }
+    } catch {}
+
     results.push({
       type: 'go',
-      name: 'go-project',
+      name: goName,
       version: '',
       ecosystem: 'Go',
       source: 'go.sum',
@@ -264,9 +274,19 @@ export function parseManifests(dir) {
   // Rust
   const rustPackages = parseCargoLock(dir);
   if (rustPackages && rustPackages.length > 0) {
+    let rustName = basename(resolve(dir)) || 'rust-project';
+    try {
+      const tomlPath = join(dir, 'Cargo.toml');
+      if (existsSync(tomlPath)) {
+        const tomlContent = readFileSync(tomlPath, 'utf8');
+        const match = tomlContent.match(/^name\s*=\s*"([^"]+)"/m);
+        if (match) rustName = match[1];
+      }
+    } catch {}
+
     results.push({
       type: 'rust',
-      name: 'rust-project',
+      name: rustName,
       version: '',
       ecosystem: 'crates.io',
       source: 'Cargo.lock',
@@ -290,7 +310,7 @@ export function parseManifests(dir) {
 
   if (pyPackages && pyPackages.length > 0) {
     // Try to get project name from pyproject.toml
-    let pyName = 'python-project';
+    let pyName = basename(resolve(dir)) || 'python-project';
     try {
       const pjPath = join(dir, 'pyproject.toml');
       if (existsSync(pjPath)) {

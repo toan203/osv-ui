@@ -103,6 +103,28 @@ npx osv-ui -d
 -h, --help      ヘルプメッセージを表示
 ```
 
+### 🤖 AIエージェント統合 (MCP)
+
+`osv-ui` は [Model Context Protocol (MCP)](https://modelcontextprotocol.io) サーバーになりました。これにより、**Claude Desktop**、**Cursor**、**Claude Code** などの AI エージェントが次のことを実行できるようになります。
+1. プロジェクトの CVE を**自動的にスキャン**します。
+2. **ビジュアルダッシュボードを開いて**、結果を確認できます (Human-in-the-loop)。
+3. 明示的な確認の後、**修正を適用**します。
+
+**クイックセットアップ (npx):**
+```json
+{
+  "mcpServers": {
+    "osv-ui": {
+      "command": "npx",
+      "args": ["-y", "osv-ui-mcp"]
+    }
+  }
+}
+```
+詳細なセットアップ手順については、[MCP パッケージの README](packages/mcp/README.md) を参照してください。
+
+---
+
 ### 🔌 強力な内蔵 API
 
 `osv-ui` は単なるダッシュボードではなく、セキュリティデータ・エンジンです。  

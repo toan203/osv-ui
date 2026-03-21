@@ -104,6 +104,28 @@ npx osv-ui -d
 -h, --help      显示帮助信息
 ```
 
+### 🤖 AI 智能体集成 (MCP)
+
+`osv-ui` 现在是一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器。这允许像 **Claude Desktop**, **Cursor**, 和 **Claude Code** 这样的 AI 智能体：
+1. **自动扫描项目** 中的 CVE 漏洞。
+2. **打开可视化仪表板** 供你查看发现（人机回环/Human-in-the-loop）。
+3. **在经过你明确确认后应用修复**。
+
+**快速设置 (npx):**
+```json
+{
+  "mcpServers": {
+    "osv-ui": {
+      "command": "npx",
+      "args": ["-y", "osv-ui-mcp"]
+    }
+  }
+}
+```
+有关详细设置说明，请参阅 [MCP 软件包 README](packages/mcp/README.md)。
+
+---
+
 ### 🔌 强大的内置 API
 
 `osv-ui` 不仅仅是一个仪表板；它还是一个安全数据引擎。  

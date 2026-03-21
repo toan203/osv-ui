@@ -103,6 +103,28 @@ npx osv-ui -d
 -h, --help        Show help message
 ```
 
+### 🤖 AI Agent Integration (MCP)
+
+`osv-ui` is now a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server. This allows AI agents like **Claude Desktop**, **Cursor**, and **Claude Code** to:
+1. **Scan your project** for CVEs automatically.
+2. **Open the visual dashboard** for you to review findings (Human-in-the-loop).
+3. **Apply fixes** after your explicit confirmation.
+
+**Quick setup (npx):**
+```json
+{
+  "mcpServers": {
+    "osv-ui": {
+      "command": "npx",
+      "args": ["-y", "osv-ui-mcp"]
+    }
+  }
+}
+```
+See the [MCP Package README](packages/mcp/README.md) for detailed setup instructions.
+
+---
+
 ### 🔌 Powerful built-in API
 
 `osv-ui` isn't just a dashboard; it's a security data engine.  

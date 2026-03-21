@@ -1,8 +1,22 @@
 # osv-ui-mcp
 
-> MCP server for [osv-ui](https://github.com/toan203/osv-ui) — scan projects for CVEs inside Claude, Cursor, or any MCP client, with **human-in-the-loop UI confirmation** before applying fixes.
+> MCP server for [osv-ui](https://github.com/toan203/osv-ui) — scan projects for CVEs inside Claude Desktop, Cursor, and more.
 
-## What makes this different
+![OSV-UI Dashboard Summary](/Users/toannm/.gemini/antigravity/brain/c5762446-34bb-4e9d-8058-cfd64ab81e0f/dashboard_main_page_1774064597463.png)
+
+## Why this exists
+
+AI Agents (like Claude or Cursor) can write code, but they shouldn't always be trusted to "blindly" fix security vulnerabilities. 
+
+**osv-ui-mcp** provides a **Human-in-the-loop** workflow:
+1. The AI scans your project and finds vulnerabilities.
+2. Instead of just showing text, it **opens a beautiful visual dashboard** in your browser.
+3. You review the CVEs, severity, and suggested fixes in the UI.
+4. You tell the AI: *"OK, fix exactly what I saw in the dashboard."*
+
+![Human-in-the-loop Flow](/Users/toannm/.gemini/antigravity/brain/c5762446-34bb-4e9d-8058-cfd64ab81e0f/final_dashboard_scan_1774073451064.webp)
+
+## Comparison with others
 
 | | osv-ui-mcp | StacklokLabs/osv-mcp | others |
 |---|:---:|:---:|:---:|

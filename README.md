@@ -8,6 +8,7 @@
 One command. No signup. No API key. **Runs 100% locally — your code never leaves your machine.**
 
 [![npm version](https://img.shields.io/npm/v/osv-ui?color=red&label=npm)](https://www.npmjs.com/package/osv-ui)
+[![npm version (mcp)](https://img.shields.io/npm/v/osv-ui-mcp?color=blue&label=mcp)](https://www.npmjs.com/package/osv-ui-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)

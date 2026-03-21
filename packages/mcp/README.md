@@ -2,7 +2,7 @@
 
 > MCP server for [osv-ui](https://github.com/toan203/osv-ui) — scan projects for CVEs inside Claude Desktop, Cursor, and more.
 
-![OSV-UI Dashboard Summary](/Users/toannm/.gemini/antigravity/brain/c5762446-34bb-4e9d-8058-cfd64ab81e0f/dashboard_main_page_1774064597463.png)
+![OSV-UI Dashboard Summary](../../docs/mcp/dashboard.png)
 
 ## Why this exists
 
@@ -14,7 +14,7 @@ AI Agents (like Claude or Cursor) can write code, but they shouldn't always be t
 3. You review the CVEs, severity, and suggested fixes in the UI.
 4. You tell the AI: *"OK, fix exactly what I saw in the dashboard."*
 
-![Human-in-the-loop Flow](/Users/toannm/.gemini/antigravity/brain/c5762446-34bb-4e9d-8058-cfd64ab81e0f/final_dashboard_scan_1774073451064.webp)
+![Human-in-the-loop Flow](../../docs/mcp/human-in-the-loop.webp)
 
 ## Comparison with others
 

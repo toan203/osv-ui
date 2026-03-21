@@ -1,6 +1,6 @@
 {
   "name": "osv-ui",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A beautiful, zero-config visual CVE dashboard for npm, Python, Go, and Rust. Run 'npx osv-ui' to scan or 'npx osv-ui -d' to auto-discover services. Repo: https://github.com/toan203/osv-ui",
   "type": "module",
   "bin": {

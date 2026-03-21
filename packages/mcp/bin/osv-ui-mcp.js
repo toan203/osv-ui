@@ -250,7 +250,7 @@ async function handleOpenDashboard({ path: dir = '.', port }) {
   // Spawn osv-ui detached with discovery enabled
   const child = spawn(
     process.execPath,
-    [osvUiBin, '-d', absDir, `--port=${assignedPort}`, '--no-open'],
+    [osvUiBin, absDir, `--port=${assignedPort}`, '--no-open'],
     { detached: true, stdio: 'ignore' }
   );
   child.unref();

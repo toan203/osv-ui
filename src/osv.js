@@ -17,6 +17,8 @@ const BATCH_SIZE = 1000; // OSV allows up to 1000 per batch request
 const ECOSYSTEM_MAP = {
   npm: 'npm',
   PyPI: 'PyPI',
+  Go: 'Go',
+  'crates.io': 'crates.io',
 };
 
 /**

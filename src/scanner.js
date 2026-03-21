@@ -15,7 +15,6 @@ export async function scanService(dir, { noOsv = false } = {}) {
   // If multiple manifests (e.g. monorepo with both npm + python in same dir),
   // merge them into one service result
   const allPackages = manifests.flatMap(m => m.packages);
-  const primaryManifest = manifests[0];
   const ecosystems = [...new Set(manifests.map(m => m.ecosystem))];
 
   // Determine display name

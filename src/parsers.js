@@ -9,6 +9,12 @@ function parseMaven(dir) {
   const pomPath = join(dir, 'pom.xml');
   const content = readFileSync(pomPath, 'utf8');
   const packages = [];
+  const properties = {};
+
+  const props = content.match(/<properties>([\s\S]*?)<\/properties>/)?.[1] || '';
+  for (const prop of props.matchAll(/<([A-Za-z0-9_.-]+)>([^<]+)<\/\1>/g)) {
+    properties[prop[1]] = prop[2].trim();
+  }
   
   // Extract name/groupId for project name
   const group = content.match(/<groupId>([^<]+)<\/groupId>/)?.[1];
@@ -22,7 +28,9 @@ function parseMaven(dir) {
     const depStr = match[1];
     const g = depStr.match(/<groupId>([^<]+)<\/groupId>/)?.[1];
     const a = depStr.match(/<artifactId>([^<]+)<\/artifactId>/)?.[1];
-    const v = depStr.match(/<version>([^<]+)<\/version>/)?.[1];
+    const rawVersion = depStr.match(/<version>([^<]+)<\/version>/)?.[1];
+    const v = resolveMavenVersion(rawVersion, properties);
+    const scope = depStr.match(/<scope>([^<]+)<\/scope>/)?.[1];
     
     if (g && a && v) {
       packages.push({
@@ -30,10 +38,18 @@ function parseMaven(dir) {
         version: v,
         ecosystem: 'Maven',
         isDirect: true,
+        dev: scope === 'test',
+        registry: `https://central.sonatype.com/artifact/${g}/${a}`,
       });
     }
   }
   return packages;
+}
+
+function resolveMavenVersion(version, properties) {
+  if (!version) return null;
+  const prop = version.match(/^\$\{([^}]+)\}$/)?.[1];
+  return prop ? properties[prop] || version : version;
 }
 
 /**
@@ -61,6 +77,33 @@ function parseComposer(dir) {
     packages.forEach(p => { if (direct.has(p.name)) p.isDirect = true; });
   }
 
+  return packages;
+}
+
+function normalizeVersionSpec(spec) {
+  const version = String(spec || '').match(/[0-9]+(?:\.[0-9A-Za-z-]+)+/)?.[0];
+  return version || 'unknown';
+}
+
+function parseComposerJson(dir) {
+  const jsonPath = join(dir, 'composer.json');
+  if (!existsSync(jsonPath)) return null;
+  const config = JSON.parse(readFileSync(jsonPath, 'utf8'));
+  const packages = [];
+  for (const [section, isDev] of [['require', false], ['require-dev', true]]) {
+    for (const [name, spec] of Object.entries(config[section] || {})) {
+      if (name === 'php' || name.startsWith('ext-')) continue;
+      packages.push({
+        name,
+        version: normalizeVersionSpec(spec),
+        versionSpec: spec,
+        ecosystem: 'Packagist',
+        isDirect: true,
+        dev: isDev,
+        registry: 'https://packagist.org/packages/' + name,
+      });
+    }
+  }
   return packages;
 }
 
@@ -96,6 +139,29 @@ function parseGemfileLock(dir) {
     packages.forEach(p => { if (direct.has(p.name)) p.isDirect = true; });
   }
 
+  return packages;
+}
+
+function parseGemfile(dir) {
+  const gemfilePath = join(dir, 'Gemfile');
+  if (!existsSync(gemfilePath)) return null;
+  const content = readFileSync(gemfilePath, 'utf8');
+  const packages = [];
+  const regex = /^\s*gem\s+['"]([^'"]+)['"]\s*(?:,\s*['"]([^'"]+)['"])?/gm;
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    const name = match[1];
+    const spec = match[2] || '';
+    packages.push({
+      name,
+      version: normalizeVersionSpec(spec),
+      versionSpec: spec || undefined,
+      ecosystem: 'RubyGems',
+      isDirect: true,
+      dev: false,
+      registry: 'https://rubygems.org/gems/' + name,
+    });
+  }
   return packages;
 }
 
@@ -360,25 +426,43 @@ function parsePyproject(dir) {
 function parseGo(dir) {
   const sumPath = join(dir, 'go.sum');
   const modPath = join(dir, 'go.mod');
-  if (!existsSync(sumPath)) return null;
-  const sumContent = readFileSync(sumPath, 'utf8');
+  if (!existsSync(sumPath) && !existsSync(modPath)) return null;
+  const sumContent = existsSync(sumPath) ? readFileSync(sumPath, 'utf8') : '';
   const modContent = existsSync(modPath) ? readFileSync(modPath, 'utf8') : '';
   const packages = [];
   const seen = new Set();
-  const lines = sumContent.split('\n');
-  for (let line of lines) {
-    line = line.trim();
-    if (!line) continue;
-    const parts = line.split(/\s+/);
-    if (parts.length < 2) continue;
-    const name = parts[0];
-    let version = parts[1];
-    if (version.endsWith('/go.mod')) continue;
-    const key = `${name}@${version}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const isDirect = modContent.includes(`\t${name} `) || modContent.includes(` ${name} `);
-    packages.push({ name, version, ecosystem: 'Go', isDirect, dev: false, registry: 'https://pkg.go.dev/' + name });
+
+  if (sumContent) {
+    const lines = sumContent.split('\n');
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+      const parts = line.split(/\s+/);
+      if (parts.length < 2) continue;
+      const name = parts[0];
+      let version = parts[1];
+      if (version.endsWith('/go.mod')) continue;
+      const key = `${name}@${version}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const isDirect = modContent.includes(`\t${name} `) || modContent.includes(` ${name} `);
+      packages.push({ name, version, ecosystem: 'Go', isDirect, dev: false, registry: 'https://pkg.go.dev/' + name });
+    }
+  } else {
+    for (const match of modContent.matchAll(/^\s*([^\s]+)\s+(v[^\s]+)(?:\s+\/\/\s+indirect)?/gm)) {
+      const name = match[1];
+      if (name === 'module' || name === 'go' || name === 'require') continue;
+      const version = match[2];
+      const line = match[0];
+      packages.push({
+        name,
+        version,
+        ecosystem: 'Go',
+        isDirect: !line.includes('// indirect'),
+        dev: false,
+        registry: 'https://pkg.go.dev/' + name,
+      });
+    }
   }
   return packages;
 }
@@ -427,14 +511,14 @@ export function parseManifests(dir) {
       id: 'php',
       order: [
         { file: 'composer.lock', parser: d => ({ packages: parseComposer(d), ecosystem: 'Packagist', source: 'composer.lock' }) },
-        { file: 'composer.json', parser: d => ({ packages: [], ecosystem: 'Packagist', source: 'composer.json' }) }
+        { file: 'composer.json', parser: d => ({ packages: parseComposerJson(d), ecosystem: 'Packagist', source: 'composer.json' }) }
       ]
     },
     {
       id: 'ruby',
       order: [
         { file: 'Gemfile.lock', parser: d => ({ packages: parseGemfileLock(d), ecosystem: 'RubyGems', source: 'Gemfile.lock' }) },
-        { file: 'Gemfile', parser: d => ({ packages: [], ecosystem: 'RubyGems', source: 'Gemfile' }) }
+        { file: 'Gemfile', parser: d => ({ packages: parseGemfile(d), ecosystem: 'RubyGems', source: 'Gemfile' }) }
       ]
     },
     {
@@ -469,7 +553,8 @@ export function parseManifests(dir) {
     {
       id: 'go',
       order: [
-        { file: 'go.sum', parser: d => ({ packages: parseGo(d), ecosystem: 'Go', source: 'go.sum' }) }
+        { file: 'go.sum', parser: d => ({ packages: parseGo(d), ecosystem: 'Go', source: 'go.sum' }) },
+        { file: 'go.mod', parser: d => ({ packages: parseGo(d), ecosystem: 'Go', source: 'go.mod' }) }
       ]
     },
     {

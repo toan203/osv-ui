@@ -34,13 +34,13 @@ export async function scanService(dir, { noOsv = false } = {}) {
   // ── Build vulnerability list ────────────────────────────────────────────────
   const vulns = [];
   const severityCounts = { critical: 0, high: 0, moderate: 0, low: 0, unknown: 0 };
+  const seenVulns = new Set();
 
   for (const pkg of allPackages) {
     const key = `${pkg.ecosystem}:${pkg.name}@${pkg.version}`;
     const pkgVulns = osvResults.get(key) || [];
     for (const vuln of pkgVulns) {
-      severityCounts[vuln.severity] = (severityCounts[vuln.severity] || 0) + 1;
-      vulns.push({
+      const normalized = {
         ...vuln,
         packageName: pkg.name,
         packageVersion: pkg.version,
@@ -48,7 +48,12 @@ export async function scanService(dir, { noOsv = false } = {}) {
         isDirect: pkg.isDirect,
         dev: pkg.dev,
         registryUrl: pkg.registry,
-      });
+      };
+      const dedupeKey = getVulnDedupeKey(normalized);
+      if (seenVulns.has(dedupeKey)) continue;
+      seenVulns.add(dedupeKey);
+      severityCounts[normalized.severity] = (severityCounts[normalized.severity] || 0) + 1;
+      vulns.push(normalized);
     }
   }
 
@@ -82,3 +87,10 @@ export async function scanService(dir, { noOsv = false } = {}) {
 }
 
 function dim(s) { return `\x1b[90m${s}\x1b[0m`; }
+
+function getVulnDedupeKey(vuln) {
+  const advisory = vuln.cveId?.startsWith('CVE-')
+    ? vuln.cveId
+    : vuln.ghsaId || vuln.cveId || vuln.id;
+  return `${vuln.ecosystem}:${vuln.packageName}:${advisory}`;
+}

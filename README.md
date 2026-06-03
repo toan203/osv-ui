@@ -12,7 +12,7 @@ One command. No signup. No API key. **Runs 100% locally — your code never leav
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D16-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 
 [🇻🇳 Tiếng Việt](README.vi.md) · [🇺🇸 English](README.md) · [🇨🇳 中文](README.zh.md) · [🇯🇵 日本語](README.ja.md)
 
@@ -99,6 +99,14 @@ npx osv-ui -d
 --port=2003       Use a custom port (default: 2003)
 --json[=file]     Save report as JSON without opening browser (defaults to osv-report.json)
 --html[=file]     Save report as HTML without opening browser (defaults to osv-report.html)
+--cyclonedx[=file] Save CycloneDX SBOM JSON (defaults to osv-sbom.cdx.json)
+--spdx[=file]     Save SPDX SBOM JSON (defaults to osv-sbom.spdx.json)
+--baseline=file   Compare with a previous --json report
+--markdown[=file] Save a Markdown PR/comment report (defaults to osv-report.md)
+--fail-on=level   Exit non-zero for critical/high/moderate/low findings
+--webhook-url=url POST matching findings to a webhook
+--webhook-severity=level Webhook threshold (default: critical)
+--watch           Keep dashboard running and re-scan when manifests change
 --no-open         Don't auto-open the browser
 --offline         Skip OSV.dev lookup — parse manifests only
 -h, --help        Show help message
@@ -137,6 +145,50 @@ curl http://localhost:2003/api/data
 
 # Use it in your custom scripts
 curl -s http://localhost:2003/api/data | jq '.[0].vulns'
+```
+
+### CI reports, PR diffs, and SBOMs
+
+Generate machine-readable reports without opening the browser:
+
+```bash
+npx osv-ui -d --json=osv-report.json --markdown=osv-report.md --cyclonedx=sbom.cdx.json --spdx=sbom.spdx.json --no-open
+```
+
+Compare a PR scan against a baseline report and fail on newly introduced high+ findings:
+
+```bash
+npx osv-ui -d --json=current.json --baseline=main-osv-report.json --markdown=osv-pr.md --fail-on=high --no-open
+```
+
+Minimal GitHub Actions flow:
+
+```yaml
+name: osv-ui
+on: [pull_request]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx osv-ui -d --json=current.json --markdown=osv-pr.md --cyclonedx=sbom.cdx.json --fail-on=high --no-open
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: osv-ui-report
+          path: |
+            current.json
+            osv-pr.md
+            sbom.cdx.json
+```
+
+Send new critical findings to a webhook:
+
+```bash
+npx osv-ui -d --baseline=main-osv-report.json --webhook-url="$SECURITY_WEBHOOK_URL" --webhook-severity=critical --json=current.json
 ```
 
 ---
@@ -244,7 +296,7 @@ audit:
 
 ## Requirements
 
-- **Node.js** >= 16
+- **Node.js** >= 18
 - Internet access for OSV.dev queries — or use `--offline`
 - npm projects: run `npm install` first so `package-lock.json` exists
 - Python projects: any of the supported manifest files listed above
@@ -262,10 +314,12 @@ All contributions are welcome. If you want to work on something, open an issue f
 - [x] **Ruby / Bundler** — parse `Gemfile.lock`
 - [x] **Export report** — save as HTML / JSON
 - [x] **Dark mode** — eye-friendly dashboard UI
-- [ ] **GitHub Actions** — post a CVE diff comment on PRs
-- [ ] **SBOM export** — CycloneDX / SPDX format
-- [ ] **Watch mode** — re-scan on manifest file changes
-- [ ] **Slack / webhook** — notify on new critical CVEs
+- [x] **GitHub Actions / CI diff** — generate Markdown PR comments and fail on new CVEs
+- [x] **SBOM export** — CycloneDX / SPDX format
+- [x] **Watch mode** — re-scan on manifest file changes
+- [x] **Slack / webhook** — notify on new critical CVEs
+- [ ] **Parser hardening** — Maven property inheritance, lockfile edge cases, workspace layouts
+- [ ] **Live dashboard refresh** — push watch-mode updates to an open browser tab without reload
 
 ---
 
@@ -274,9 +328,9 @@ All contributions are welcome. If you want to work on something, open an issue f
 This project is built by the community. All skill levels welcome.
 
 **Good first issues:**
-- Add Java/Maven parser (`pom.xml`) — follow the pattern in `src/parsers.js`
 - Write unit tests for the parsers
 - Improve Python parser edge cases
+- Improve Maven/Gradle and workspace parser edge cases
 
 ```bash
 # Clone and run locally

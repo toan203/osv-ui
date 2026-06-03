@@ -27,7 +27,7 @@ let nextPort = 2003;
 
 // ── Server definition ────────────────────────────────────────────────────────
 const server = new Server(
-  { name: 'osv-ui-mcp', version: '1.0.0' },
+  { name: 'osv-ui-mcp', version: '1.1.0' },
   { capabilities: { tools: {} } }
 );
 
@@ -38,8 +38,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: 'scan_project',
       description:
         'Scan a project directory for CVE vulnerabilities. ' +
-        'Automatically detects npm (package-lock.json), Python (requirements.txt / Pipfile.lock / poetry.lock), ' +
-        'Go (go.sum), and Rust (Cargo.lock) manifests. ' +
+        'Automatically detects npm, Python, Go, Rust, Java/Maven, PHP/Composer, and Ruby/Bundler manifests. ' +
         'Queries live CVE data from OSV.dev. ' +
         'Returns structured vulnerability report with severity counts, risk score, and fix recommendations. ' +
         'Use this as the first step before open_dashboard or apply_fixes.',
@@ -88,7 +87,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       description:
         'Get the safe upgrade commands for vulnerable packages WITHOUT executing them. ' +
         'Use this to show the user what will be changed before calling apply_fixes. ' +
-        'Returns a list of commands grouped by ecosystem (npm install / pip install).',
+        'Returns a list of commands grouped by ecosystem (npm, pip, go, cargo, Maven, Composer, Bundler).',
       inputSchema: {
         type: 'object',
         properties: {

@@ -11,7 +11,7 @@ Một câu lệnh. Không cần đăng ký. Không cần API key. **Chạy 100% 
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D16-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 
 [🇻🇳 Tiếng Việt](README.vi.md) · [🇺🇸 English](README.md) · [🇨🇳 中文](README.zh.md) · [🇯🇵 日本語](README.ja.md)
 
@@ -98,6 +98,14 @@ npx osv-ui -d
 --port=2003     Sử dụng port tùy chỉnh (mặc định: 2003)
 --json[=file]   Lưu báo cáo dưới dạng JSON (mặc định: osv-report.json)
 --html[=file]   Lưu báo cáo dưới dạng HTML (mặc định: osv-report.html)
+--cyclonedx[=file] Lưu SBOM CycloneDX JSON (mặc định: osv-sbom.cdx.json)
+--spdx[=file]   Lưu SBOM SPDX JSON (mặc định: osv-sbom.spdx.json)
+--baseline=file So sánh với báo cáo JSON trước đó
+--markdown[=file] Lưu báo cáo Markdown / comment PR (mặc định: osv-report.md)
+--fail-on=level Thoát non-zero nếu có CVE ở mức critical/high/moderate/low
+--webhook-url=url POST các finding phù hợp tới webhook
+--webhook-severity=level Ngưỡng gửi webhook (mặc định: critical)
+--watch         Giữ dashboard chạy và quét lại khi manifest thay đổi
 --no-open       Không tự động mở trình duyệt
 --offline       Bỏ qua truy vấn OSV.dev — chỉ parse các file manifest
 -h, --help      Hiển thị hướng dẫn
@@ -114,6 +122,16 @@ curl http://localhost:2003/api/data
 
 # Sử dụng trong các script tùy chỉnh của bạn
 curl -s http://localhost:2003/api/data | jq '.[0].vulns'
+```
+
+### Báo cáo CI, PR diff và SBOM
+
+```bash
+npx osv-ui -d --json=current.json --baseline=main-osv-report.json --markdown=osv-pr.md --cyclonedx=sbom.cdx.json --fail-on=high --no-open
+```
+
+```bash
+npx osv-ui -d --baseline=main-osv-report.json --webhook-url="$SECURITY_WEBHOOK_URL" --webhook-severity=critical --json=current.json
 ```
 
 ---
@@ -220,7 +238,7 @@ audit:
 
 ## Yêu cầu hệ thống
 
-- **Node.js** >= 16
+- **Node.js** >= 18
 - Truy cập Internet để truy vấn OSV.dev — hoặc dùng `--offline`
 - Dự án npm: chạy `npm install` trước để có file `package-lock.json`
 - Dự án Python: bất kỳ file manifest nào trong danh sách hỗ trợ bên trên
@@ -238,10 +256,12 @@ Mọi đóng góp đều được trân trọng. Nếu bạn muốn phát triể
 - [x] **Hỗ trợ Ruby / Bundler** — parse `Gemfile.lock`
 - [x] **Xuất báo cáo** — lưu dưới dạng HTML / JSON
 - [x] **Dark mode** — giao diện Dashboard dịu mắt
-- [ ] **GitHub Actions** — đăng comment so sánh CVE trên PRs
-- [ ] **Xuất SBOM** — định dạng CycloneDX / SPDX
-- [ ] **Chế độ theo dõi (Watch mode)** — tự động quét lại khi file manifest thay đổi
-- [ ] **Slack / webhook** — thông báo khi có CVE nghiêm trọng mới
+- [x] **GitHub Actions / CI diff** — tạo Markdown comment cho PR và fail khi có CVE mới
+- [x] **Xuất SBOM** — định dạng CycloneDX / SPDX
+- [x] **Chế độ theo dõi (Watch mode)** — tự động quét lại khi file manifest thay đổi
+- [x] **Slack / webhook** — thông báo khi có CVE nghiêm trọng mới
+- [ ] **Làm cứng parser** — Maven inheritance, lockfile edge cases, workspace layouts
+- [ ] **Live dashboard refresh** — cập nhật tab trình duyệt trong watch mode mà không cần reload
 
 ---
 
@@ -250,9 +270,9 @@ Mọi đóng góp đều được trân trọng. Nếu bạn muốn phát triể
 Dự án này được xây dựng bởi cộng đồng. Chào đón mọi cấp độ kỹ năng.
 
 **Các issue phù hợp cho người mới bắt đầu:**
-- Thêm bộ parse cho Java/Maven (`pom.xml`) — làm theo mẫu trong `src/parsers.js`
 - Viết unit test cho các bộ parse
 - Cải thiện các trường hợp đặc biệt cho bộ parse Python
+- Cải thiện parser Maven/Gradle và workspace edge cases
 
 ```bash
 # Clone và chạy local

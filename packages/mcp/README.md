@@ -20,7 +20,7 @@ AI Agents (like Claude or Cursor) can write code, but they shouldn't always be t
 | | osv-ui-mcp | StacklokLabs/osv-mcp | others |
 |---|:---:|:---:|:---:|
 | Auto-detect manifests | ✅ | ❌ manual query | ❌ |
-| npm + Python + Go + Rust | ✅ | ✅ (query only) | partial |
+| npm + Python + Go + Rust + Java + PHP + Ruby | ✅ | ✅ (query only) | partial |
 | Visual dashboard (browser UI) | ✅ | ❌ | ❌ |
 | Human-in-the-loop confirm | ✅ | ❌ | ❌ |
 | Apply fixes from chat | ✅ | ❌ | ❌ |
@@ -89,6 +89,8 @@ scan_project({ path: "./", severity_filter: "high" })
 ```
 
 Returns: full vulnerability report with risk score, CVE list, and fix recommendations.
+
+Supported ecosystems match the CLI: npm, Python, Go, Rust, Java/Maven, PHP/Composer, and Ruby/Bundler.
 
 ### `open_dashboard`
 Launch the osv-ui visual dashboard in your browser.

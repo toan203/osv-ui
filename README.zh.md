@@ -13,7 +13,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D16-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 
 </div>
 
@@ -243,7 +243,7 @@ audit:
 
 ## 运行要求
 
-- **Node.js** >= 16
+- **Node.js** >= 18
 - 访问互联网以进行 OSV.dev 查询 — 或使用 `--offline`
 - npm 项目：先运行 `npm install` 以生成 `package-lock.json`
 - Python 项目：上述清单列表中的任何文件
@@ -261,10 +261,12 @@ audit:
 - [x] **Ruby / Bundler 支持** — 解析 `Gemfile.lock`
 - [x] **导出报告** — 保存为 HTML / JSON
 - [x] **深色模式** — 护眼的仪表板 UI
-- [ ] **GitHub Actions** — 在 PR 上发布 CVE 差异评论
-- [ ] **SBOM 导出** — CycloneDX / SPDX 格式
-- [ ] **监听模式** — 清单文件更改时自动重新扫描
-- [ ] **Slack / webhook** — 新出现的严重 CVE 通知
+- [x] **GitHub Actions / CI diff** — 生成 PR Markdown 评论并在新增 CVE 时失败
+- [x] **SBOM 导出** — CycloneDX / SPDX 格式
+- [x] **监听模式** — 清单文件更改时自动重新扫描
+- [x] **Slack / webhook** — 新出现的严重 CVE 通知
+- [ ] **解析器强化** — Maven 继承、lockfile 边缘情况、workspace 布局
+- [ ] **实时仪表板刷新** — watch 模式下无需刷新浏览器标签页
 
 ---
 
@@ -273,9 +275,9 @@ audit:
 本项目由社区构建。欢迎各种技能水平的开发者。
 
 **适合入门的 Issue (Good first issue):**
-- 添加 Java/Maven 解析器 (`pom.xml`) — 请参考 `src/parsers.js` 中的模式
 - 为解析器编写单元测试
 - 改进 Python 解析器的边缘情况处理
+- 改进 Maven/Gradle 和 workspace 解析器边缘情况
 
 ```bash
 # 克隆并在本地运行

@@ -9,7 +9,7 @@ git clone https://github.com/toan203/osv-ui
 cd osv-ui
 npm install
 
-# Run against your own project
+# Run against your own project (Node.js 18+)
 node bin/cli.js /path/to/any/npm-or-python-project
 ```
 
@@ -20,7 +20,7 @@ osv-ui/
 ├── bin/
 │   └── cli.js          # Entry point — CLI args, service discovery, orchestration
 ├── src/
-│   ├── parsers.js       # Manifest parsers (npm, Python) — add new ecosystems here
+│   ├── parsers.js       # Manifest parsers — add new ecosystems here
 │   ├── osv.js           # OSV.dev API client — batch query, response parsing
 │   ├── scanner.js       # Orchestrates parsing + OSV query for one service
 │   └── server.js        # Express server + dashboard HTML generation

@@ -13,7 +13,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D16-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 
 </div>
 
@@ -242,7 +242,7 @@ audit:
 
 ## 実行要件
 
-- **Node.js** >= 16
+- **Node.js** >= 18
 - OSV.dev への問い合わせのためのインターネット接続 — または `--offline` を使用
 - npm プロジェクト: `package-lock.json` を生成するために、まず `npm install` を実行してください
 - Python プロジェクト: 上記のリストに含まれるマニフェストファイル
@@ -260,10 +260,12 @@ audit:
 - [x] **Ruby / Bundler サポート** — `Gemfile.lock` の解析
 - [x] **レポートのエクスポート** — HTML / JSON として保存
 - [x] **ダークモード** — 目に優しいダッシュボード UI
-- [ ] **GitHub Actions** — PR に CVE 差分コメントを投稿
-- [ ] **SBOM エクスポート** — CycloneDX / SPDX 形式
-- [ ] **ウォッチモード** — マニフェスト変更時に自動再スキャン
-- [ ] **Slack / Webhook** — 重大な CVE の新着を通知
+- [x] **GitHub Actions / CI diff** — PR 用 Markdown コメントを生成し、新規 CVE で失敗
+- [x] **SBOM エクスポート** — CycloneDX / SPDX 形式
+- [x] **ウォッチモード** — マニフェスト変更時に自動再スキャン
+- [x] **Slack / Webhook** — 重大な CVE の新着を通知
+- [ ] **パーサー強化** — Maven 継承、lockfile エッジケース、workspace レイアウト
+- [ ] **ライブダッシュボード更新** — watch モードでブラウザタブをリロードせずに更新
 
 ---
 
@@ -272,9 +274,9 @@ audit:
 このプロジェクトはコミュニティによって構築されています。あらゆるスキルレベルを歓迎します。
 
 **Good first issue** (深い知識を必要としません):
-- Java または Maven のマニフェスト解析器を追加 (`pom.xml`) — `src/parsers.js` のパターンに従ってください
 - 解析器のユニットテストを作成
 - Python 解析器のエッジケースを改善
+- Maven/Gradle と workspace パーサーのエッジケースを改善
 
 ```bash
 # クローンしてローカルで実行

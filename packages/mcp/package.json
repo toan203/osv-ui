@@ -1,7 +1,7 @@
 {
   "name": "osv-ui-mcp",
-  "version": "1.0.6",
-  "description": "MCP server for osv-ui — scan projects for CVEs, open visual dashboard, apply fixes with human confirmation",
+  "version": "1.1.0",
+  "description": "MCP server for osv-ui — scan npm, Python, Go, Rust, Java, PHP, and Ruby projects for CVEs with a human-reviewed dashboard",
   "type": "module",
   "bin": {
     "osv-ui-mcp": "./bin/osv-ui-mcp.js"
@@ -13,6 +13,11 @@
     "osv",
     "npm-audit",
     "python",
+    "go",
+    "rust",
+    "java",
+    "php",
+    "ruby",
     "vulnerability",
     "dependabot"
   ],
@@ -20,7 +25,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "open": "^9.1.0",
-    "osv-ui": "^1.1.6"
+    "osv-ui": "^1.2.0"
   },
   "engines": {
     "node": ">=18.0.0"

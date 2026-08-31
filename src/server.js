@@ -1,75 +1,44 @@
 import express from 'express';
-import http from 'http';
 import compression from 'compression';
-import { execSync } from 'child_process';
-
-function checkIfOsvUi(port) {
-  return new Promise(resolve => {
-    const req = http.request({ host: '127.0.0.1', port, method: 'GET', path: '/api/data', timeout: 300 }, res => {
-      resolve(res.headers['x-app'] === 'osv-ui');
-    });
-    req.on('error', () => resolve(false));
-    req.on('timeout', () => { req.destroy(); resolve(false); });
-    req.end();
-  });
-}
-
-function killPort(port) {
-  try {
-    const currentPid = process.pid;
-    if (process.platform === 'win32') {
-      const out = execSync(`netstat -ano | findstr :${port}`).toString();
-      const pids = out.split('\n')
-        .map(line => line.trim().split(/\s+/).pop())
-        .filter(pid => pid && /^\d+$/.test(pid) && parseInt(pid) !== currentPid);
-      [...new Set(pids)].forEach(pid => {
-        try { execSync(`taskkill /F /PID ${pid}`); } catch {}
-      });
-    } else {
-      const out = execSync(`lsof -t -i :${port}`).toString().trim();
-      if (out) {
-        out.split('\n').forEach(pid => {
-          if (parseInt(pid) !== currentPid) {
-            try { execSync(`kill -9 ${pid}`); } catch {}
-          }
-        });
-      }
-    }
-  } catch (e) {}
-}
 
 export function createServer(payload, port, version) {
   return new Promise((resolve, reject) => {
+    const initialPort = Number(port);
+    if (!Number.isInteger(initialPort) || initialPort < 0 || initialPort > 65535) {
+      reject(new Error(`Invalid port: ${port}`));
+      return;
+    }
     let attempts = 0;
     const start = async (currentPort) => {
       if (attempts++ > 15) return reject(new Error('Port search limit reached'));
+      if (currentPort > 65535) return reject(new Error('No available TCP port in range'));
       const app = express();
       app.use(compression());
       app.use((_, res, next) => { res.setHeader('X-App', 'osv-ui'); next(); });
       app.get('/', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.send(buildDashboard(payload, version)); });
       app.get('/api/data', (_, res) => res.json(payload));
       
-      const server = app.listen(currentPort, '127.0.0.1', () => {
-        resolve({ server, port: currentPort });
-      });
+      let server;
+      try {
+        server = app.listen(currentPort, '127.0.0.1', () => {
+          const address = server.address();
+          resolve({ server, port: typeof address === 'object' && address ? address.port : currentPort });
+        });
+      } catch (error) {
+        reject(error);
+        return;
+      }
 
-      server.on('error', async e => {
+      server.on('error', e => {
         if (e.code === 'EADDRINUSE') {
-          const isOurs = await checkIfOsvUi(currentPort);
-          if (isOurs) {
-            console.log(`  ${currentPort} is busy (osv-ui), auto-recovering...`);
-            killPort(currentPort);
-            setTimeout(() => start(currentPort), 600);
-          } else {
-            console.log(`  ${currentPort} is busy (other service), trying ${currentPort + 1}...`);
-            start(currentPort + 1);
-          }
+          console.log(`  ${currentPort} is busy, trying ${currentPort + 1}...`);
+          start(currentPort + 1);
         } else {
           reject(e);
         }
       });
     };
-    start(port);
+    start(initialPort);
   });
 }
 
@@ -108,7 +77,7 @@ function riskColor(score) {
   return score >= 50 ? 'var(--red)' : score >= 20 ? 'var(--orange)' : score > 0 ? 'var(--yellow)' : 'var(--green)';
 }
 
-export function buildDashboard({ services, scannedAt, noOsv }, version = '1.0.0') {
+export function buildDashboard({ services, scannedAt, noOsv, scanStatus }, version = '1.0.0') {
   const totalVulns = services.reduce((s, r) => s + r.vulns.length, 0);
   const totalPkgs = services.reduce((s, r) => s + r.totalPackages, 0);
   const totalCrit = services.reduce((s, r) => s + r.severity.critical, 0);
@@ -117,7 +86,7 @@ export function buildDashboard({ services, scannedAt, noOsv }, version = '1.0.0'
   const avgRisk = services.length ? Math.round(globalRisk / services.length) : 0;
 
   // Securely embed JSON data to prevent XSS and browser security flags
-  const safeJson = JSON.stringify({ services, scannedAt, noOsv })
+  const safeJson = JSON.stringify({ services, scannedAt, noOsv, scanStatus })
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
     .replace(/\u2028/g, '\\u2028')
@@ -146,13 +115,18 @@ export function buildDashboard({ services, scannedAt, noOsv }, version = '1.0.0'
   // Build per-service panels
   const servicePanels = services.map((svc, i) => buildServicePanel(svc, i)).join('');
 
-  const osvNote = noOsv
+  const scanWarning = scanStatus?.complete === false
+    ? `<div style="background:var(--sev-critical-bg);border:1px solid var(--sev-critical-c);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--sev-critical-c);margin-bottom:16px">
+        ❌ The latest scan is incomplete. Showing the last successful result. ${esc(scanStatus.error || '')}
+      </div>`
+    : '';
+  const osvNote = scanWarning + (noOsv
     ? `<div style="background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--warn-c);margin-bottom:16px">
         ⚠ Running in offline mode — CVE data not fetched. Remove <code>--offline</code> to query OSV.dev.
       </div>`
     : `<div style="background:var(--success-bg);border:1px solid var(--success-border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--success-c);margin-bottom:16px">
         ✅ CVE data from <a href="https://osv.dev" target="_blank" rel="noopener" style="color:var(--success-c);font-weight:600">OSV.dev</a> — updated daily from NVD · GitHub Advisory · PyPI Advisory · npm Advisory
-      </div>`;
+      </div>`);
 
   const scanTime = new Date(scannedAt).toLocaleString();
 

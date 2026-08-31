@@ -23,6 +23,9 @@ const version = pkg.version;
 
 // ── CLI args ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
+const EXIT_USAGE_OR_REPORT = 1;
+const EXIT_FINDINGS = 2;
+const EXIT_SCAN_INCOMPLETE = 3;
 const portArg = args.find(a => a.startsWith('--port='));
 const PORT = portArg ? parseInt(portArg.split('=')[1]) : 2003;
 const noOpen = args.includes('--no-open');
@@ -65,11 +68,18 @@ const markdownArg = args.find(a => a.startsWith('--markdown'));
 const isMarkdown = !!markdownArg;
 const markdownFile = markdownArg && markdownArg.includes('=') ? markdownArg.split('=')[1] : 'osv-report.md';
 const failOnArg = args.find(a => a.startsWith('--fail-on='));
-const failOn = failOnArg ? parseSeverityThreshold(failOnArg.split('=')[1]) : null;
 const webhookArg = args.find(a => a.startsWith('--webhook-url='));
 const webhookUrl = webhookArg ? webhookArg.slice('--webhook-url='.length) : null;
 const webhookSeverityArg = args.find(a => a.startsWith('--webhook-severity='));
-const webhookSeverity = parseSeverityThreshold(webhookSeverityArg ? webhookSeverityArg.split('=')[1] : 'critical');
+let failOn = null;
+let webhookSeverity = 'critical';
+try {
+  failOn = failOnArg ? parseSeverityThreshold(failOnArg.split('=')[1]) : null;
+  webhookSeverity = parseSeverityThreshold(webhookSeverityArg ? webhookSeverityArg.split('=')[1] : 'critical');
+} catch (err) {
+  process.stderr.write(`osv-ui: ${err.message}\n`);
+  process.exit(EXIT_USAGE_OR_REPORT);
+}
 
 const paths = args.filter(a => !a.startsWith('-') && !a.startsWith('--')); // positional = service dirs
 
@@ -207,12 +217,19 @@ async function scanAllServices() {
       log(`    ${statusIcon} ${bold(result.name)} ${dim(`(${result.ecosystem})`)} — ${v} vuln${v !== 1 ? 's' : ''}`);
     } catch (e) {
       log(red(`    ✖ Failed: ${e.message}`));
+      throw new Error(`Scan incomplete for ${dir}: ${e.message}`, { cause: e });
     }
   }
   return services;
 }
 
-const services = await scanAllServices();
+let services;
+try {
+  services = await scanAllServices();
+} catch (err) {
+  log(red(`  ✖ ${err.message}`));
+  process.exit(EXIT_SCAN_INCOMPLETE);
+}
 
 log('');
 
@@ -222,7 +239,12 @@ const totalCrit = services.reduce((s, r) => s + r.severity.critical, 0);
 const totalPkgs = services.reduce((s, r) => s + r.packages.length, 0);
 
 // ── Export or Start Server ───────────────────────────────────────────────────
-const payload = { services, scannedAt: new Date().toISOString(), noOsv };
+const payload = {
+  services,
+  scannedAt: new Date().toISOString(),
+  noOsv,
+  scanStatus: { complete: true, error: null },
+};
 const baselinePayload = baselineFile ? readJsonFile(baselineFile) : null;
 const diffReport = baselinePayload ? buildDiffReport(payload, baselinePayload) : null;
 let wroteReport = false;
@@ -261,7 +283,7 @@ try {
   }
 } catch (err) {
   log(red(`  ✖ Report step failed: ${err.message}`));
-  process.exit(1);
+  process.exit(EXIT_USAGE_OR_REPORT);
 }
 
 if (diffReport) {
@@ -274,7 +296,7 @@ const shouldFail = failOn && shouldFailForSeverity(failPayload, failOn);
 if (failOn && !watch) {
   if (shouldFail) {
     log(red(`  ✖ Failing because ${failOn}+ findings were found${diffReport ? ' in the diff' : ''}.`));
-    process.exit(2);
+    process.exit(EXIT_FINDINGS);
   }
   log(`  ${green('✔')} No ${failOn}+ findings${diffReport ? ' in the diff' : ''}.`);
   if (!wroteReport) process.exit(0);
@@ -295,12 +317,18 @@ if (!wroteReport || watch) {
     if (watch) {
       startWatch(payload);
     }
+  }).catch(err => {
+    log(red(`  ✖ Dashboard failed: ${err.message}`));
+    process.exit(EXIT_USAGE_OR_REPORT);
   });
 }
 
 function readJsonFile(file) {
   try {
-    return JSON.parse(readFileSync(file, 'utf8'));
+    const payload = JSON.parse(readFileSync(file, 'utf8'));
+    if (!Array.isArray(payload.services)) throw new Error('missing services array');
+    if (payload.scanStatus?.complete === false) throw new Error('baseline scan is incomplete');
+    return payload;
   } catch (err) {
     log(red(`  ✖ Failed to read baseline ${file}: ${err.message}`));
     process.exit(1);
@@ -314,10 +342,16 @@ function startWatch(payload) {
     clearTimeout(timer);
     timer = setTimeout(async () => {
       log(dim('\n  Manifest changed; re-scanning...'));
-      const services = await scanAllServices();
-      payload.services.splice(0, payload.services.length, ...services);
-      payload.scannedAt = new Date().toISOString();
-      log(dim('  Re-scan complete. Refresh the browser to see the latest dashboard.\n'));
+      try {
+        const services = await scanAllServices();
+        payload.services.splice(0, payload.services.length, ...services);
+        payload.scannedAt = new Date().toISOString();
+        payload.scanStatus = { complete: true, error: null };
+        log(dim('  Re-scan complete. Refresh the browser to see the latest dashboard.\n'));
+      } catch (err) {
+        payload.scanStatus = { complete: false, error: err.message };
+        log(red(`  ✖ Re-scan incomplete; keeping the last successful result: ${err.message}\n`));
+      }
     }, 300);
   };
 

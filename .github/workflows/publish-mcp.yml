@@ -1,0 +1,54 @@
+name: Publish osv-ui-mcp
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/mcp/package.json
+      - packages/mcp/package-lock.json
+  workflow_dispatch:
+
+concurrency:
+  group: publish-osv-ui-mcp
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    defaults:
+      run:
+        working-directory: packages/mcp
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: packages/mcp/package-lock.json
+      - run: npm install --global npm@11
+        working-directory: .
+      - run: npm ci --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=high
+      - run: node --input-type=module -e "const mod = await import('./src/core.js'); if (typeof mod.scanService !== 'function') process.exit(1)"
+      - name: Check whether this version is new
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if npm view "osv-ui-mcp@$version" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$version" == *-* ]]; then echo "tag=next" >> "$GITHUB_OUTPUT"; else echo "tag=latest" >> "$GITHUB_OUTPUT"; fi
+      - name: Publish MCP package
+        if: steps.version.outputs.publish == 'true'
+        run: npm publish --access public --tag "${{ steps.version.outputs.tag }}" --provenance

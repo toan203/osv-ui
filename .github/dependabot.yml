@@ -1,0 +1,34 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:00"
+      timezone: Asia/Ho_Chi_Minh
+    groups:
+      root-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /packages/mcp
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:15"
+      timezone: Asia/Ho_Chi_Minh
+    groups:
+      mcp-dependencies:
+        patterns: ["*"]
+    ignore:
+      # osv-ui-mcp is deliberately pinned and synchronized only after core is published.
+      - dependency-name: osv-ui
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:30"
+      timezone: Asia/Ho_Chi_Minh

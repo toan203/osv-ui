@@ -12,6 +12,15 @@
 
 const OSV_BASE = 'https://api.osv.dev/v1';
 const BATCH_SIZE = 1000; // OSV allows up to 1000 per batch request
+const DETAIL_CONCURRENCY = 25;
+
+export class OsvQueryError extends Error {
+  constructor(message, failures = []) {
+    super(message);
+    this.name = 'OsvQueryError';
+    this.failures = failures;
+  }
+}
 
 // Map our ecosystem names to OSV ecosystem identifiers
 const ECOSYSTEM_MAP = {
@@ -34,6 +43,7 @@ export async function queryOSV(packages) {
 
   const results = new Map();
   const packageVulns = []; // Array of { pkg, vulnIds: [] }
+  const batchFailures = [];
 
   // Process in batches to get vulnerable IDs
   for (let i = 0; i < filtered.length; i += BATCH_SIZE) {
@@ -56,8 +66,11 @@ export async function queryOSV(packages) {
 
       if (!res.ok) throw new Error(`OSV API returned ${res.status}`);
       const data = await res.json();
+      if (!Array.isArray(data.results) || data.results.length !== batch.length) {
+        throw new Error(`OSV API returned ${Array.isArray(data.results) ? data.results.length : 'an invalid number of'} results for ${batch.length} queries`);
+      }
 
-      (data.results || []).forEach((result, idx) => {
+      data.results.forEach((result, idx) => {
         const pkg = batch[idx];
         if (result.vulns && result.vulns.length > 0) {
           packageVulns.push({ pkg, vulnIds: result.vulns.map(v => v.id) });
@@ -65,7 +78,15 @@ export async function queryOSV(packages) {
       });
     } catch (e) {
       process.stderr.write(`    ⚠ OSV.dev querybatch failed: ${e.message}\n`);
+      batchFailures.push(e);
     }
+  }
+
+  if (batchFailures.length > 0) {
+    throw new OsvQueryError(
+      `OSV.dev batch scan incomplete (${batchFailures.length} request${batchFailures.length === 1 ? '' : 's'} failed)`,
+      batchFailures,
+    );
   }
 
   // Fetch full vulnerability details for all unique IDs
@@ -73,17 +94,28 @@ export async function queryOSV(packages) {
   packageVulns.forEach(pv => pv.vulnIds.forEach(id => uniqueIds.add(id)));
 
   const fullVulnsMap = new Map();
-  const fetchPromises = Array.from(uniqueIds).map(async (id) => {
-    try {
-      const r = await fetch(`${OSV_BASE}/vulns/${id}`, { signal: AbortSignal.timeout(10000) });
-      if (r.ok) fullVulnsMap.set(id, await r.json());
-    } catch (e) {
-      process.stderr.write(`    ⚠ OSV.dev fetch detail failed for ${id}: ${e.message}\n`);
-    }
-  });
-  
-  // Wait for all detail fetches to complete
-  await Promise.allSettled(fetchPromises);
+  const detailFailures = [];
+  const ids = Array.from(uniqueIds);
+  for (let i = 0; i < ids.length; i += DETAIL_CONCURRENCY) {
+    const chunk = ids.slice(i, i + DETAIL_CONCURRENCY);
+    await Promise.all(chunk.map(async (id) => {
+      try {
+        const r = await fetch(`${OSV_BASE}/vulns/${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
+        if (!r.ok) throw new Error(`OSV API returned ${r.status}`);
+        fullVulnsMap.set(id, await r.json());
+      } catch (e) {
+        process.stderr.write(`    ⚠ OSV.dev fetch detail failed for ${id}: ${e.message}\n`);
+        detailFailures.push({ id, error: e });
+      }
+    }));
+  }
+
+  if (detailFailures.length > 0) {
+    throw new OsvQueryError(
+      `OSV.dev vulnerability details incomplete (${detailFailures.length} record${detailFailures.length === 1 ? '' : 's'} failed)`,
+      detailFailures,
+    );
+  }
 
   // Map full vulnerability data back to packages
   packageVulns.forEach(pv => {
@@ -116,11 +148,8 @@ function parseOsvVuln(v, pkg) {
   if (v.severity?.length > 0) {
     const cvss = v.severity.find(s => s.type === 'CVSS_V3' || s.type === 'CVSS_V2');
     if (cvss?.score) {
-      cvssScore = parseFloat(cvss.score);
-      if (cvssScore >= 9.0) severity = 'critical';
-      else if (cvssScore >= 7.0) severity = 'high';
-      else if (cvssScore >= 4.0) severity = 'moderate';
-      else severity = 'low';
+      cvssScore = parseCvssScore(cvss.type, cvss.score);
+      if (cvssScore !== null) severity = severityFromScore(cvssScore);
     }
   }
   
@@ -206,6 +235,56 @@ function parseOsvVuln(v, pkg) {
   };
 }
 
+function parseCvssScore(type, value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric >= 0 && numeric <= 10) return numeric;
+  if (type !== 'CVSS_V3') return null;
+  return calculateCvssV3BaseScore(String(value));
+}
+
+function severityFromScore(score) {
+  if (score >= 9.0) return 'critical';
+  if (score >= 7.0) return 'high';
+  if (score >= 4.0) return 'moderate';
+  return 'low';
+}
+
+function calculateCvssV3BaseScore(vector) {
+  if (!/^CVSS:3\.[01]\//.test(vector)) return null;
+  const metrics = Object.fromEntries(
+    vector.split('/').slice(1).map(part => part.split(':')).filter(parts => parts.length === 2),
+  );
+  const scopeChanged = metrics.S === 'C';
+  const av = { N: 0.85, A: 0.62, L: 0.55, P: 0.2 }[metrics.AV];
+  const ac = { L: 0.77, H: 0.44 }[metrics.AC];
+  const pr = scopeChanged
+    ? { N: 0.85, L: 0.68, H: 0.5 }[metrics.PR]
+    : { N: 0.85, L: 0.62, H: 0.27 }[metrics.PR];
+  const ui = { N: 0.85, R: 0.62 }[metrics.UI];
+  const confidentiality = { H: 0.56, L: 0.22, N: 0 }[metrics.C];
+  const integrity = { H: 0.56, L: 0.22, N: 0 }[metrics.I];
+  const availability = { H: 0.56, L: 0.22, N: 0 }[metrics.A];
+
+  if ([av, ac, pr, ui, confidentiality, integrity, availability].some(value => value === undefined)) {
+    return null;
+  }
+
+  const impactSubScore = 1 - ((1 - confidentiality) * (1 - integrity) * (1 - availability));
+  const isV31 = vector.startsWith('CVSS:3.1/');
+  const impact = scopeChanged
+    ? isV31
+      ? 7.52 * (impactSubScore - 0.029) - 3.25 * (((impactSubScore * 0.9731) - 0.02) ** 13)
+      : 7.52 * (impactSubScore - 0.029) - 3.25 * ((impactSubScore - 0.02) ** 15)
+    : 6.42 * impactSubScore;
+  if (impact <= 0) return 0;
+
+  const exploitability = 8.22 * av * ac * pr * ui;
+  const score = scopeChanged
+    ? Math.min(1.08 * (impact + exploitability), 10)
+    : Math.min(impact + exploitability, 10);
+  return Math.ceil((score - Number.EPSILON) * 10) / 10;
+}
+
 // Query a single package (for drill-down)
 export async function queryPackage(name, version, ecosystem) {
   try {
@@ -218,7 +297,10 @@ export async function queryPackage(name, version, ecosystem) {
       }),
       signal: AbortSignal.timeout(10000),
     });
+    if (!res.ok) throw new Error(`OSV API returned ${res.status}`);
     const data = await res.json();
     return (data.vulns || []);
-  } catch { return []; }
+  } catch (error) {
+    throw new OsvQueryError(`OSV.dev package query incomplete: ${error.message}`, [error]);
+  }
 }

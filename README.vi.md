@@ -11,7 +11,7 @@ Một câu lệnh. Không cần đăng ký. Không cần API key. **Chạy 100% 
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-blue)](https://nodejs.org)
 
 [🇻🇳 Tiếng Việt](README.vi.md) · [🇺🇸 English](README.md) · [🇨🇳 中文](README.zh.md) · [🇯🇵 日本語](README.ja.md)
 
@@ -215,7 +215,7 @@ Không có Dependabot trên GitLab Free? Thêm nội dung này vào `.gitlab-ci.
 ```yaml
 audit:
   stage: test
-  image: node:20-alpine
+  image: node:24-alpine
   script:
     - npm audit --json > /tmp/audit.json || true
     - |
@@ -238,7 +238,7 @@ audit:
 
 ## Yêu cầu hệ thống
 
-- **Node.js** >= 18
+- **Node.js** >= 22
 - Truy cập Internet để truy vấn OSV.dev — hoặc dùng `--offline`
 - Dự án npm: chạy `npm install` trước để có file `package-lock.json`
 - Dự án Python: bất kỳ file manifest nào trong danh sách hỗ trợ bên trên

@@ -13,7 +13,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-blue)](https://nodejs.org)
 
 </div>
 
@@ -220,7 +220,7 @@ osv-ui 和 [osv-scanner](https://github.com/google/osv-scanner) 使用相同的 
 ```yaml
 audit:
   stage: test
-  image: node:20-alpine
+  image: node:24-alpine
   script:
     - npm audit --json > /tmp/audit.json || true
     - |
@@ -243,7 +243,7 @@ audit:
 
 ## 运行要求
 
-- **Node.js** >= 18
+- **Node.js** >= 22
 - 访问互联网以进行 OSV.dev 查询 — 或使用 `--offline`
 - npm 项目：先运行 `npm install` 以生成 `package-lock.json`
 - Python 项目：上述清单列表中的任何文件

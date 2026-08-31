@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run ci
+      - run: npm audit --omit=dev --audit-level=high
+
+  mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/mcp/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: packages/mcp
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: packages/mcp
+      - run: node --input-type=module -e "const mod = await import('./src/core.js'); if (typeof mod.scanService !== 'function') process.exit(1)"
+        working-directory: packages/mcp
+
+  reports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: mkdir -p artifacts
+      - name: Generate and validate release artifacts
+        run: >-
+          node bin/cli.js . packages/mcp --offline
+          --json=artifacts/osv-report.json
+          --markdown=artifacts/osv-report.md
+          --cyclonedx=artifacts/osv-sbom.cdx.json
+          --spdx=artifacts/osv-sbom.spdx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: security-reports
+          path: artifacts/
+          retention-days: 30

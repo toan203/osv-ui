@@ -1,0 +1,47 @@
+name: Prepare version update
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: New osv-ui version, for example 2.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Validate requested version
+        run: |
+          node -e "if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(process.env.RELEASE_VERSION)) process.exit(1)"
+          if npm view "osv-ui@$RELEASE_VERSION" version >/dev/null 2>&1; then
+            echo "osv-ui@$RELEASE_VERSION already exists" >&2
+            exit 1
+          fi
+      - run: npm version "$RELEASE_VERSION" --no-git-tag-version
+      - run: npm ci --ignore-scripts
+      - run: npm run ci
+      - name: Open release PR
+        run: |
+          branch="automation/release-v$RELEASE_VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add package.json package-lock.json
+          git commit -m "chore: prepare osv-ui v$RELEASE_VERSION"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "chore: release osv-ui v$RELEASE_VERSION" --body "Automated core version update. After merge, CI publishes osv-ui first and opens a synchronized osv-ui-mcp update PR."
+          gh pr merge "$branch" --auto --squash || true

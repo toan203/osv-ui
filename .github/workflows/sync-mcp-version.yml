@@ -1,0 +1,79 @@
+name: Synchronize MCP version
+
+on:
+  workflow_dispatch:
+    inputs:
+      core_version:
+        description: Published osv-ui version (for example, 2.0.0)
+        required: true
+        type: string
+      mcp_version:
+        description: osv-ui-mcp version; defaults to the core version
+        required: false
+        type: string
+
+concurrency:
+  group: sync-osv-ui-mcp-${{ inputs.core_version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  synchronize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Validate published core version
+        id: versions
+        env:
+          CORE_VERSION: ${{ inputs.core_version }}
+          REQUESTED_MCP_VERSION: ${{ inputs.mcp_version }}
+        run: |
+          version_pattern='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          if [[ ! "$CORE_VERSION" =~ $version_pattern ]]; then
+            echo "Invalid core version: $CORE_VERSION" >&2
+            exit 1
+          fi
+          mcp_version="${REQUESTED_MCP_VERSION:-$CORE_VERSION}"
+          if [[ ! "$mcp_version" =~ $version_pattern ]]; then
+            echo "Invalid MCP version: $mcp_version" >&2
+            exit 1
+          fi
+          npm view "osv-ui@$CORE_VERSION" version >/dev/null
+          echo "core=$CORE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "mcp=$mcp_version" >> "$GITHUB_OUTPUT"
+      - name: Update MCP package and lockfile
+        env:
+          CORE_VERSION: ${{ steps.versions.outputs.core }}
+          MCP_VERSION: ${{ steps.versions.outputs.mcp }}
+        run: node scripts/sync-mcp-version.mjs --version "$CORE_VERSION" --mcp-version "$MCP_VERSION"
+      - name: Open synchronization PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CORE_VERSION: ${{ steps.versions.outputs.core }}
+          MCP_VERSION: ${{ steps.versions.outputs.mcp }}
+        run: |
+          if git diff --quiet -- packages/mcp/package.json packages/mcp/package-lock.json; then
+            echo "MCP is already synchronized."
+            exit 0
+          fi
+          branch="automation/sync-mcp-v$MCP_VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add packages/mcp/package.json packages/mcp/package-lock.json
+          git commit -m "chore: sync osv-ui-mcp with osv-ui v$CORE_VERSION"
+          git push --force-with-lease origin "$branch"
+          pr_url=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url')
+          if [[ -z "$pr_url" ]]; then
+            pr_url=$(gh pr create --base main --head "$branch" --title "chore: sync osv-ui-mcp v$MCP_VERSION" --body "Pins osv-ui-mcp $MCP_VERSION to published osv-ui $CORE_VERSION. Merge publishes the MCP package.")
+          fi
+          gh pr merge "$pr_url" --auto --squash || true

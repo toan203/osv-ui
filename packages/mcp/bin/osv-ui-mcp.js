@@ -16,18 +16,20 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { resolve, join } from 'path';
-import { existsSync } from 'fs';
-import { execSync, spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { existsSync, readFileSync } from 'fs';
+import { execFileSync, spawn, spawnSync } from 'child_process';
 
-import { scanService } from 'osv-ui/src/scanner.js';
+import { scanService } from '../src/core.js';
 
 // ── Running dashboard instances (path → { port, pid }) ──────────────────────
 const runningDashboards = new Map();
 let nextPort = 2003;
+const mcpPackage = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
 // ── Server definition ────────────────────────────────────────────────────────
 const server = new Server(
-  { name: 'osv-ui-mcp', version: '1.1.0' },
+  { name: 'osv-ui-mcp', version: mcpPackage.version },
   { capabilities: { tools: {} } }
 );
 
@@ -229,6 +231,10 @@ async function handleScanProject({ path: dir = '.', severity_filter = 'all', off
 async function handleOpenDashboard({ path: dir = '.', port }) {
   const absDir = resolve(dir);
 
+  if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+    return err(`Invalid dashboard port: ${port}. Expected an integer from 1 to 65535.`);
+  }
+
   // Already running?
   const existing = runningDashboards.get(absDir);
   if (existing) {
@@ -237,7 +243,7 @@ async function handleOpenDashboard({ path: dir = '.', port }) {
     return ok(`Dashboard already running at ${url}\n\nThe osv-ui dashboard is now open in your browser. Review the vulnerabilities and upgrade guide, then come back and tell me which packages you want to fix.`);
   }
 
-  const assignedPort = port || nextPort++;
+  const assignedPort = port ?? nextPort++;
   const osvUiBin = findOsvUiBin();
 
   if (!osvUiBin) {
@@ -256,7 +262,12 @@ async function handleOpenDashboard({ path: dir = '.', port }) {
   runningDashboards.set(absDir, { port: assignedPort, pid: child.pid });
 
   // Wait for server to be ready
-  await waitForPort(assignedPort, 8000);
+  const ready = await waitForPort(assignedPort, 8000);
+  if (!ready) {
+    runningDashboards.delete(absDir);
+    try { process.kill(child.pid); } catch {}
+    return err(`Dashboard did not become ready on port ${assignedPort}. Check that osv-ui can scan ${absDir}.`);
+  }
 
   const url = `http://localhost:${assignedPort}`;
   try { const { default: open } = await import('open'); await open(url); } catch {}
@@ -326,8 +337,17 @@ async function handleApplyFixes({ path: dir = '.', packages, dry_run = false }) 
     }
 
     try {
-      const stdout = execSync(f.command, { cwd: absDir, timeout: 60000 }).toString().trim();
-      outputs.push(`✅ ${f.name}: upgraded to ${f.fixVersion} (fixes ${f.cveCount} CVE${f.cveCount > 1 ? 's' : ''})\n   $ ${f.command}\n   ${stdout.slice(0, 200)}`);
+      const result = spawnSync(f.executable, f.args, {
+        cwd: absDir,
+        timeout: 60000,
+        encoding: 'utf8',
+        shell: false,
+      });
+      if (result.error) throw result.error;
+      if (result.status !== 0) {
+        throw new Error((result.stderr || result.stdout || `exit status ${result.status}`).trim());
+      }
+      outputs.push(`✅ ${f.name}: upgraded to ${f.fixVersion} (fixes ${f.cveCount} CVE${f.cveCount > 1 ? 's' : ''})\n   $ ${f.command}\n   ${(result.stdout || '').trim().slice(0, 200)}`);
     } catch (e) {
       outputs.push(`❌ ${f.name}: command failed\n   $ ${f.command}\n   ${e.message.slice(0, 200)}`);
     }
@@ -350,7 +370,9 @@ function getFixableGroups(vulns, filterNames, maxSevRank = 4) {
     if ((sevOrder[v.severity] ?? 4) > maxSevRank) continue;
     if (filterNames && !filterNames.map(n => n.toLowerCase()).includes(v.packageName.toLowerCase())) continue;
 
-    const key = v.packageName;
+    const execution = buildFixExecution(v);
+    if (!execution) continue;
+    const key = `${v.ecosystem}:${v.packageName}`;
     const existing = map.get(key);
     if (!existing) {
       map.set(key, {
@@ -360,14 +382,14 @@ function getFixableGroups(vulns, filterNames, maxSevRank = 4) {
         fixVersion: v.fixedIn,
         severity: v.severity,
         cveCount: 1,
-        command: v.fixCommand || buildFixCommand(v),
+        ...execution,
       });
     } else {
       existing.cveCount++;
       // Keep highest fix version
       if (compareSemver(v.fixedIn, existing.fixVersion) > 0) {
         existing.fixVersion = v.fixedIn;
-        existing.command = v.fixCommand || buildFixCommand(v);
+        Object.assign(existing, execution);
       }
     }
   }
@@ -377,10 +399,43 @@ function getFixableGroups(vulns, filterNames, maxSevRank = 4) {
   });
 }
 
-function buildFixCommand(v) {
-  if (v.ecosystem === 'npm') return `npm install ${v.packageName}@${v.fixedIn}`;
-  if (v.ecosystem === 'PyPI') return `pip install "${v.packageName}>=${v.fixedIn}"`;
-  return `# update ${v.packageName} to ${v.fixedIn}`;
+function buildFixExecution(v) {
+  if (!isSafePackageCoordinate(v.packageName, v.fixedIn)) return null;
+  let executable;
+  let args;
+  if (v.ecosystem === 'npm') {
+    executable = 'npm';
+    args = ['install', `${v.packageName}@${v.fixedIn}`];
+  } else if (v.ecosystem === 'PyPI') {
+    executable = process.env.PYTHON || 'python3';
+    args = ['-m', 'pip', 'install', `${v.packageName}>=${v.fixedIn}`];
+  } else if (v.ecosystem === 'Go') {
+    executable = 'go';
+    args = ['get', `${v.packageName}@${v.fixedIn}`];
+  } else if (v.ecosystem === 'crates.io') {
+    executable = 'cargo';
+    args = ['update', '-p', v.packageName, '--precise', v.fixedIn];
+  } else if (v.ecosystem === 'Packagist') {
+    executable = 'composer';
+    args = ['require', `${v.packageName}:${v.fixedIn}`];
+  } else if (v.ecosystem === 'RubyGems') {
+    executable = 'bundle';
+    args = ['update', v.packageName];
+  } else {
+    return null;
+  }
+  return { executable, args, command: formatCommand(executable, args) };
+}
+
+function isSafePackageCoordinate(name, version) {
+  return /^[A-Za-z0-9@._~+/-]+$/.test(String(name || ''))
+    && /^[A-Za-z0-9][A-Za-z0-9._~+:-]*$/.test(String(version || ''));
+}
+
+function formatCommand(executable, args) {
+  return [executable, ...args].map(value => /^[A-Za-z0-9@._~+/:=-]+$/.test(value)
+    ? value
+    : JSON.stringify(value)).join(' ');
 }
 
 function compareSemver(a, b) {
@@ -394,12 +449,16 @@ function compareSemver(a, b) {
 }
 
 function findOsvUiBin() {
+  for (const specifier of ['osv-ui/cli', 'osv-ui/bin/cli.js']) {
+    try {
+      return fileURLToPath(import.meta.resolve(specifier));
+    } catch {}
+  }
+
   // Check common locations
   const candidates = [
     // Global npm bin
     join(process.env.npm_config_prefix || '', 'bin', 'osv-ui'),
-    // npx cache
-    join(process.env.HOME || '', '.npm', '_npx'),
     // Same node_modules
     join(process.cwd(), 'node_modules', '.bin', 'osv-ui'),
     join(process.cwd(), '..', 'node_modules', '.bin', 'osv-ui'),
@@ -409,7 +468,8 @@ function findOsvUiBin() {
   }
   // Try which
   try {
-    return execSync('which osv-ui', { stdio: 'pipe' }).toString().trim();
+    const finder = process.platform === 'win32' ? 'where' : 'which';
+    return execFileSync(finder, ['osv-ui'], { stdio: 'pipe' }).toString().trim().split(/\r?\n/)[0];
   } catch {}
   return null;
 }

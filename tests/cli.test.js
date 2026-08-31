@@ -5,11 +5,13 @@ import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { createProject, npmFixture, removeProject } from './helpers.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 test('CLI writes JSON, HTML, Markdown, and SBOM reports offline', () => {
   const dir = mkdtempSync(join(tmpdir(), 'osv-ui-test-'));
+  const project = createProject(npmFixture);
   try {
     const jsonFile = join(dir, 'report.json');
     const htmlFile = join(dir, 'report.html');
@@ -19,7 +21,7 @@ test('CLI writes JSON, HTML, Markdown, and SBOM reports offline', () => {
 
     execFileSync(process.execPath, [
       join(root, 'bin/cli.js'),
-      join(root, 'test-fixture/javascript-npm'),
+      project,
       '--offline',
       `--json=${jsonFile}`,
       `--html=${htmlFile}`,
@@ -38,5 +40,21 @@ test('CLI writes JSON, HTML, Markdown, and SBOM reports offline', () => {
     assert.equal(JSON.parse(readFileSync(spdxFile, 'utf8')).spdxVersion, 'SPDX-2.3');
   } finally {
     rmSync(dir, { recursive: true, force: true });
+    removeProject(project);
+  }
+});
+
+test('CLI exits with scan-incomplete status when OSV is unavailable', () => {
+  const project = createProject(npmFixture);
+  try {
+    assert.throws(() => execFileSync(process.execPath, [
+      '--import', join(root, 'tests/mock-fetch-failure.js'),
+      join(root, 'bin/cli.js'),
+      project,
+      '--json',
+      '--fail-on=high',
+    ], { cwd: project, stdio: 'pipe' }), error => error.status === 3);
+  } finally {
+    removeProject(project);
   }
 });

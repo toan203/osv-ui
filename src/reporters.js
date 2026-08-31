@@ -1,8 +1,13 @@
+import { createHash, randomUUID } from 'crypto';
+
 const SEV_RANK = { critical: 0, high: 1, moderate: 2, low: 3, unknown: 4 };
 
 export function parseSeverityThreshold(value = 'critical') {
   const normalized = String(value || 'critical').toLowerCase();
-  return Object.hasOwn(SEV_RANK, normalized) ? normalized : 'critical';
+  if (!Object.hasOwn(SEV_RANK, normalized) || normalized === 'unknown') {
+    throw new Error(`Invalid severity threshold: ${value}`);
+  }
+  return normalized;
 }
 
 export function isAtOrAboveSeverity(severity, threshold = 'critical') {
@@ -12,13 +17,14 @@ export function isAtOrAboveSeverity(severity, threshold = 'critical') {
 }
 
 export function getVulnKey(service, vuln) {
+  const advisory = vuln.cveId?.startsWith('CVE-')
+    ? vuln.cveId
+    : vuln.ghsaId || vuln.id || vuln.cveId || 'unknown';
   return [
     service.name,
+    vuln.ecosystem || service.ecosystem || '',
     vuln.packageName,
-    vuln.packageVersion,
-    vuln.id,
-    vuln.cveId || '',
-    vuln.ghsaId || '',
+    advisory,
   ].join('|');
 }
 
@@ -113,11 +119,13 @@ export function buildCycloneDxSbom(payload) {
       const key = `${pkg.ecosystem}:${pkg.name}@${pkg.version}`;
       if (seen.has(key)) continue;
       seen.add(key);
+      const purl = buildPurl(pkg);
       components.push({
         type: 'library',
+        'bom-ref': purl,
         name: pkg.name,
         version: pkg.version,
-        purl: buildPurl(pkg),
+        purl,
         scope: pkg.dev ? 'optional' : 'required',
         properties: [
           { name: 'osv-ui:ecosystem', value: pkg.ecosystem || '' },
@@ -153,6 +161,7 @@ export function buildCycloneDxSbom(payload) {
   return {
     bomFormat: 'CycloneDX',
     specVersion: '1.5',
+    serialNumber: `urn:uuid:${randomUUID()}`,
     version: 1,
     metadata: {
       timestamp: payload.scannedAt || new Date().toISOString(),
@@ -166,15 +175,17 @@ export function buildCycloneDxSbom(payload) {
 export function buildSpdxSbom(payload) {
   const now = payload.scannedAt || new Date().toISOString();
   const packages = [];
+  const relationships = [];
   const seen = new Set();
   for (const service of payload.services || []) {
     for (const pkg of service.packages || []) {
       const key = `${pkg.ecosystem}:${pkg.name}@${pkg.version}`;
       if (seen.has(key)) continue;
       seen.add(key);
+      const SPDXID = spdxId(pkg);
       packages.push({
         name: pkg.name,
-        SPDXID: spdxId(pkg),
+        SPDXID,
         versionInfo: pkg.version,
         downloadLocation: pkg.registry || 'NOASSERTION',
         filesAnalyzed: false,
@@ -184,6 +195,11 @@ export function buildSpdxSbom(payload) {
           referenceLocator: buildPurl(pkg),
         }],
       });
+      relationships.push({
+        spdxElementId: 'SPDXRef-DOCUMENT',
+        relationshipType: 'DESCRIBES',
+        relatedSpdxElement: SPDXID,
+      });
     }
   }
 
@@ -192,12 +208,13 @@ export function buildSpdxSbom(payload) {
     dataLicense: 'CC0-1.0',
     SPDXID: 'SPDXRef-DOCUMENT',
     name: 'osv-ui-sbom',
-    documentNamespace: `https://osv-ui.local/sbom/${Date.now()}`,
+    documentNamespace: `https://osv-ui.local/sbom/${randomUUID()}`,
     creationInfo: {
       created: now,
       creators: ['Tool: osv-ui'],
     },
     packages,
+    relationships,
   };
 }
 
@@ -263,15 +280,23 @@ function appendFindingList(lines, title, rows) {
   }
   lines.push('', '| Severity | Service | Package | Advisory | Fix |', '|---|---|---|---|---|');
   for (const { service, vuln } of rows.slice(0, 20)) {
-    lines.push(`| ${vuln.severity} | ${service.name} | ${vuln.packageName}@${vuln.packageVersion} | ${vuln.cveId || vuln.id} | ${vuln.fixedIn || '-'} |`);
+    lines.push(`| ${escapeMarkdownCell(vuln.severity)} | ${escapeMarkdownCell(service.name)} | ${escapeMarkdownCell(`${vuln.packageName}@${vuln.packageVersion}`)} | ${escapeMarkdownCell(vuln.cveId || vuln.id)} | ${escapeMarkdownCell(vuln.fixedIn || '-')} |`);
   }
   if (rows.length > 20) lines.push(`| ... | ... | ... | ${rows.length - 20} more | ... |`);
 }
 
 function buildPurl(pkg) {
-  const name = encodeURIComponent(pkg.name || '').replace(/%2F/g, '/');
   const version = pkg.version ? `@${encodeURIComponent(pkg.version)}` : '';
   const type = purlType(pkg.ecosystem);
+  if (pkg.ecosystem === 'Maven') {
+    const separator = String(pkg.name || '').lastIndexOf(':');
+    if (separator !== -1) {
+      const group = encodeURIComponent(pkg.name.slice(0, separator));
+      const artifact = encodeURIComponent(pkg.name.slice(separator + 1));
+      return `pkg:${type}/${group}/${artifact}${version}`;
+    }
+  }
+  const name = encodeURIComponent(pkg.name || '').replace(/%2F/gi, '/');
   return `pkg:${type}/${name}${version}`;
 }
 
@@ -287,6 +312,15 @@ function purlType(ecosystem) {
 }
 
 function spdxId(pkg) {
-  return `SPDXRef-Package-${String(pkg.ecosystem || 'pkg')}-${String(pkg.name || 'unknown')}-${String(pkg.version || 'unknown')}`
-    .replace(/[^A-Za-z0-9.-]/g, '-');
+  const raw = `${pkg.ecosystem || 'pkg'}:${pkg.name || 'unknown'}@${pkg.version || 'unknown'}`;
+  const readable = raw.replace(/[^A-Za-z0-9.-]/g, '-').slice(0, 80);
+  const digest = createHash('sha256').update(raw).digest('hex').slice(0, 12);
+  return `SPDXRef-Package-${readable}-${digest}`;
+}
+
+function escapeMarkdownCell(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/[\r\n]+/g, ' ');
 }

@@ -9,7 +9,7 @@ git clone https://github.com/toan203/osv-ui
 cd osv-ui
 npm install
 
-# Run against your own project (Node.js 18+)
+# Run against your own project (Node.js 22+)
 node bin/cli.js /path/to/any/npm-or-python-project
 ```
 

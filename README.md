@@ -12,7 +12,7 @@ One command. No signup. No API key. **Runs 100% locally — your code never leav
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-blue)](https://nodejs.org)
 
 [🇻🇳 Tiếng Việt](README.vi.md) · [🇺🇸 English](README.md) · [🇨🇳 中文](README.zh.md) · [🇯🇵 日本語](README.ja.md)
 
@@ -173,7 +173,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - run: npx osv-ui -d --json=current.json --markdown=osv-pr.md --cyclonedx=sbom.cdx.json --fail-on=high --no-open
       - uses: actions/upload-artifact@v4
         if: always()
@@ -273,7 +273,7 @@ No Dependabot on GitLab Free? Add this to `.gitlab-ci.yml`:
 ```yaml
 audit:
   stage: test
-  image: node:20-alpine
+  image: node:24-alpine
   script:
     - npm audit --json > /tmp/audit.json || true
     - |
@@ -296,7 +296,7 @@ audit:
 
 ## Requirements
 
-- **Node.js** >= 18
+- **Node.js** >= 22
 - Internet access for OSV.dev queries — or use `--offline`
 - npm projects: run `npm install` first so `package-lock.json` exists
 - Python projects: any of the supported manifest files listed above

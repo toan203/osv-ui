@@ -1,0 +1,101 @@
+name: Publish osv-ui
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+  workflow_dispatch:
+
+concurrency:
+  group: publish-osv-ui
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm install --global npm@11
+      - run: npm ci --ignore-scripts
+      - run: npm run ci
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Check whether this version is new
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if npm view "osv-ui@$version" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$version" == *-* ]]; then echo "tag=next" >> "$GITHUB_OUTPUT"; else echo "tag=latest" >> "$GITHUB_OUTPUT"; fi
+      - name: Publish core package
+        if: steps.version.outputs.publish == 'true'
+        run: npm publish --access public --tag "${{ steps.version.outputs.tag }}" --provenance
+      - name: Wait for registry consistency
+        env:
+          CORE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          for attempt in {1..12}; do
+            npm view "osv-ui@$CORE_VERSION" version >/dev/null 2>&1 && exit 0
+            sleep 5
+          done
+          echo "osv-ui@$CORE_VERSION did not become visible in time" >&2
+          exit 1
+      - name: Check whether MCP synchronization is needed
+        id: mcp
+        env:
+          CORE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          current_core=$(node -p "require('./packages/mcp/package.json').dependencies['osv-ui']")
+          current_mcp=$(node -p "require('./packages/mcp/package.json').version")
+          if [[ "$current_core" == "$CORE_VERSION" && "$current_mcp" == "$CORE_VERSION" ]]; then
+            echo "sync=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "sync=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Synchronize MCP dependency and version
+        if: steps.mcp.outputs.sync == 'true'
+        env:
+          CORE_VERSION: ${{ steps.version.outputs.version }}
+        run: node scripts/sync-mcp-version.mjs --version "$CORE_VERSION" --mcp-version "$CORE_VERSION"
+      - name: Open synchronized MCP update PR
+        if: steps.mcp.outputs.sync == 'true'
+        env:
+          CORE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          branch="automation/sync-mcp-v$CORE_VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add packages/mcp/package.json packages/mcp/package-lock.json
+          git commit -m "chore: sync osv-ui-mcp with osv-ui v$CORE_VERSION"
+          git push --force-with-lease origin "$branch"
+          pr_url=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url')
+          if [[ -z "$pr_url" ]]; then
+            pr_url=$(gh pr create --base main --head "$branch" --title "chore: sync osv-ui-mcp v$CORE_VERSION" --body "Pins osv-ui-mcp to the newly published osv-ui $CORE_VERSION and updates its lockfile. Merge publishes the MCP package.")
+          fi
+          gh pr merge "$pr_url" --auto --squash || true
+      - name: Create GitHub release
+        env:
+          CORE_VERSION: ${{ steps.version.outputs.version }}
+        run: gh release view "v$CORE_VERSION" >/dev/null 2>&1 || gh release create "v$CORE_VERSION" --target "$GITHUB_SHA" --generate-notes

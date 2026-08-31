@@ -92,5 +92,5 @@ function getVulnDedupeKey(vuln) {
   const advisory = vuln.cveId?.startsWith('CVE-')
     ? vuln.cveId
     : vuln.ghsaId || vuln.cveId || vuln.id;
-  return `${vuln.ecosystem}:${vuln.packageName}:${advisory}`;
+  return `${vuln.ecosystem}:${vuln.packageName}@${vuln.packageVersion}:${advisory}`;
 }

@@ -23,12 +23,12 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "open": "^9.1.0",
-    "osv-ui": "^1.2.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "open": "^11.0.2",
+    "osv-ui": "1.2.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

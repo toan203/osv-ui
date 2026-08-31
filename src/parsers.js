@@ -58,16 +58,19 @@ function resolveMavenVersion(version, properties) {
 function parseComposer(dir) {
   const lock = JSON.parse(readFileSync(join(dir, 'composer.lock'), 'utf8'));
   const packages = [];
-  
-  const allPkgs = [...(lock.packages || []), ...(lock['packages-dev'] || [])];
-  allPkgs.forEach(pkg => {
-    packages.push({
-      name: pkg.name,
-      version: pkg.version.replace(/^v/, ''),
-      ecosystem: 'Packagist',
-      isDirect: false, // will cross-check with composer.json
-    });
-  });
+
+  for (const [section, isDev] of [['packages', false], ['packages-dev', true]]) {
+    for (const pkg of lock[section] || []) {
+      packages.push({
+        name: pkg.name,
+        version: pkg.version.replace(/^v/, ''),
+        ecosystem: 'Packagist',
+        isDirect: false, // will cross-check with composer.json
+        dev: isDev,
+        registry: `https://packagist.org/packages/${pkg.name}`,
+      });
+    }
+  }
 
   // Cross-check with composer.json for direct deps
   const jsonPath = join(dir, 'composer.json');
@@ -176,26 +179,28 @@ export function parseNpm(dir) {
 
   const root = lock.packages?.[''] || {};
   const directNames = new Set([
-    ...Object.keys(root.dependencies || {}),
-    ...Object.keys(root.devDependencies || {}),
-    ...Object.keys(root.peerDependencies || {}),
+    ...Object.keys(root.dependencies || pkg.dependencies || {}),
+    ...Object.keys(root.devDependencies || pkg.devDependencies || {}),
+    ...Object.keys(root.peerDependencies || pkg.peerDependencies || {}),
   ]);
 
-  const packages = Object.entries(lock.packages || {})
-    .filter(([k]) => k !== '' && k.startsWith('node_modules/'))
-    .map(([k, v]) => {
-      const name = k.replace(/^node_modules\//, '').replace(/\/node_modules\//, '/');
-      return {
-        name,
-        version: v.version || '0.0.0',
-        ecosystem: 'npm',
-        isDirect: directNames.has(name),
-        dev: !!v.dev,
-        resolved: v.resolved || '',
-        registry: 'https://www.npmjs.com/package/' + name,
-      };
-    })
-    .filter(p => p.version !== '0.0.0');
+  const packages = lock.packages
+    ? Object.entries(lock.packages)
+      .filter(([k]) => k !== '' && k.includes('node_modules/'))
+      .map(([k, v]) => {
+        const name = npmPackageNameFromLockPath(k);
+        return {
+          name,
+          version: v.version || '0.0.0',
+          ecosystem: 'npm',
+          isDirect: directNames.has(name),
+          dev: !!v.dev,
+          resolved: v.resolved || '',
+          registry: 'https://www.npmjs.com/package/' + name,
+        };
+      })
+      .filter(p => p.name && p.version !== '0.0.0')
+    : parseNpmV1Dependencies(lock.dependencies || {}, directNames);
 
   return {
     name: pkg.name || basename(resolve(dir)) || 'npm-project',
@@ -205,6 +210,33 @@ export function parseNpm(dir) {
     packages,
     directCount: directNames.size,
   };
+}
+
+function npmPackageNameFromLockPath(lockPath) {
+  const marker = 'node_modules/';
+  const index = lockPath.lastIndexOf(marker);
+  return index === -1 ? null : lockPath.slice(index + marker.length);
+}
+
+function parseNpmV1Dependencies(dependencies, directNames, packages = [], seenPaths = new Set(), parentPath = '') {
+  for (const [name, info] of Object.entries(dependencies || {})) {
+    const version = info.version || '0.0.0';
+    const instancePath = `${parentPath}/node_modules/${name}@${version}`;
+    if (!seenPaths.has(instancePath) && version !== '0.0.0') {
+      seenPaths.add(instancePath);
+      packages.push({
+        name,
+        version,
+        ecosystem: 'npm',
+        isDirect: parentPath === '' && directNames.has(name),
+        dev: !!info.dev,
+        resolved: info.resolved || '',
+        registry: 'https://www.npmjs.com/package/' + name,
+      });
+    }
+    parseNpmV1Dependencies(info.dependencies || {}, directNames, packages, seenPaths, instancePath);
+  }
+  return packages;
 }
 
 // ── Node.js: pnpm-lock.yaml ────────────────────────────────────────────────

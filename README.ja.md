@@ -13,7 +13,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/osv-ui?color=orange)](https://www.npmjs.com/package/osv-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-blue)](https://nodejs.org)
 
 </div>
 
@@ -219,7 +219,7 @@ GitLab Free 版で Dependabot が使えませんか？ `.gitlab-ci.yml` に以�
 ```yaml
 audit:
   stage: test
-  image: node:20-alpine
+  image: node:24-alpine
   script:
     - npm audit --json > /tmp/audit.json || true
     - |
@@ -242,7 +242,7 @@ audit:
 
 ## 実行要件
 
-- **Node.js** >= 18
+- **Node.js** >= 22
 - OSV.dev への問い合わせのためのインターネット接続 — または `--offline` を使用
 - npm プロジェクト: `package-lock.json` を生成するために、まず `npm install` を実行してください
 - Python プロジェクト: 上記のリストに含まれるマニフェストファイル

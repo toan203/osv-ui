@@ -78,7 +78,24 @@ jobs:
         env:
           CORE_VERSION: ${{ steps.version.outputs.version }}
         run: node scripts/sync-mcp-version.mjs --version "$CORE_VERSION" --mcp-version "$CORE_VERSION"
-      - name: Open synchronized MCP update PR
+      - name: Validate synchronized MCP package
+        working-directory: packages/mcp
+        run: |
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=high
+          node --input-type=module -e "const mod = await import('./src/core.js'); if (typeof mod.scanService !== 'function') process.exit(1)"
+      - name: Check whether the MCP version is new
+        id: mcp_version
+        working-directory: packages/mcp
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "osv-ui-mcp@$version" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$version" == *-* ]]; then echo "tag=next" >> "$GITHUB_OUTPUT"; else echo "tag=latest" >> "$GITHUB_OUTPUT"; fi
+      - name: Commit synchronized MCP update
         if: steps.mcp.outputs.sync == 'true'
         env:
           CORE_VERSION: ${{ steps.version.outputs.version }}
@@ -89,12 +106,17 @@ jobs:
           git checkout -B "$branch"
           git add packages/mcp/package.json packages/mcp/package-lock.json
           git commit -m "chore: sync osv-ui-mcp with osv-ui v$CORE_VERSION"
+          git fetch origin "$branch:refs/remotes/origin/$branch" || true
           git push --force-with-lease origin "$branch"
           pr_url=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url')
           if [[ -z "$pr_url" ]]; then
             pr_url=$(gh pr create --base main --head "$branch" --title "chore: sync osv-ui-mcp v$CORE_VERSION" --body "Pins osv-ui-mcp to the newly published osv-ui $CORE_VERSION and updates its lockfile. Merge publishes the MCP package.")
           fi
-          gh pr merge "$pr_url" --auto --squash || true
+          gh pr merge "$pr_url" --squash --delete-branch
+      - name: Publish synchronized MCP package
+        if: steps.mcp_version.outputs.publish == 'true'
+        working-directory: packages/mcp
+        run: npm publish --access public --tag "${{ steps.mcp_version.outputs.tag }}" --provenance
       - name: Create GitHub release
         env:
           CORE_VERSION: ${{ steps.version.outputs.version }}

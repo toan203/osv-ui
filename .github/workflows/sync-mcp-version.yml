@@ -18,11 +18,15 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write
   pull-requests: write
 
 jobs:
   synchronize:
     runs-on: ubuntu-latest
+    environment: npm
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -30,7 +34,9 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
+          registry-url: https://registry.npmjs.org
           cache: npm
+      - run: npm install --global npm@11
       - name: Validate published core version
         id: versions
         env:
@@ -55,25 +61,41 @@ jobs:
           CORE_VERSION: ${{ steps.versions.outputs.core }}
           MCP_VERSION: ${{ steps.versions.outputs.mcp }}
         run: node scripts/sync-mcp-version.mjs --version "$CORE_VERSION" --mcp-version "$MCP_VERSION"
-      - name: Open synchronization PR
+      - name: Validate synchronized MCP package
+        working-directory: packages/mcp
+        run: |
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=high
+          node --input-type=module -e "const mod = await import('./src/core.js'); if (typeof mod.scanService !== 'function') process.exit(1)"
+      - name: Detect synchronization and publish state
+        id: state
+        working-directory: packages/mcp
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          version=$(node -p "require('./package.json').version")
+          if npm view "osv-ui-mcp@$version" version >/dev/null 2>&1; then echo "publish=false" >> "$GITHUB_OUTPUT"; else echo "publish=true" >> "$GITHUB_OUTPUT"; fi
+          if [[ "$version" == *-* ]]; then echo "tag=next" >> "$GITHUB_OUTPUT"; else echo "tag=latest" >> "$GITHUB_OUTPUT"; fi
+      - name: Commit synchronization update
+        if: steps.state.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           CORE_VERSION: ${{ steps.versions.outputs.core }}
           MCP_VERSION: ${{ steps.versions.outputs.mcp }}
         run: |
-          if git diff --quiet -- packages/mcp/package.json packages/mcp/package-lock.json; then
-            echo "MCP is already synchronized."
-            exit 0
-          fi
           branch="automation/sync-mcp-v$MCP_VERSION"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B "$branch"
           git add packages/mcp/package.json packages/mcp/package-lock.json
           git commit -m "chore: sync osv-ui-mcp with osv-ui v$CORE_VERSION"
+          git fetch origin "$branch:refs/remotes/origin/$branch" || true
           git push --force-with-lease origin "$branch"
           pr_url=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url')
           if [[ -z "$pr_url" ]]; then
             pr_url=$(gh pr create --base main --head "$branch" --title "chore: sync osv-ui-mcp v$MCP_VERSION" --body "Pins osv-ui-mcp $MCP_VERSION to published osv-ui $CORE_VERSION. Merge publishes the MCP package.")
           fi
-          gh pr merge "$pr_url" --auto --squash || true
+          gh pr merge "$pr_url" --squash --delete-branch
+      - name: Publish synchronized MCP package
+        if: steps.state.outputs.publish == 'true'
+        working-directory: packages/mcp
+        run: npm publish --access public --tag "${{ steps.state.outputs.tag }}" --provenance

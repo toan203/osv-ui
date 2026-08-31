@@ -44,4 +44,3 @@ jobs:
           git commit -m "chore: prepare osv-ui v$RELEASE_VERSION"
           git push origin "$branch"
           gh pr create --base main --head "$branch" --title "chore: release osv-ui v$RELEASE_VERSION" --body "Automated core version update. After merge, CI publishes osv-ui first and opens a synchronized osv-ui-mcp update PR."
-          gh pr merge "$branch" --auto --squash || true

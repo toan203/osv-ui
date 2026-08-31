@@ -4,7 +4,16 @@
   "description": "MCP server for osv-ui — scan npm, Python, Go, Rust, Java, PHP, and Ruby projects for CVEs with a human-reviewed dashboard",
   "type": "module",
   "bin": {
-    "osv-ui-mcp": "./bin/osv-ui-mcp.js"
+    "osv-ui-mcp": "bin/osv-ui-mcp.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toan203/osv-ui.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/toan203/osv-ui/tree/main/packages/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/toan203/osv-ui/issues"
   },
   "keywords": [
     "mcp",

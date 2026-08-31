@@ -1,6 +1,6 @@
 {
   "name": "osv-ui-mcp",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "MCP server for osv-ui — scan npm, Python, Go, Rust, Java, PHP, and Ruby projects for CVEs with a human-reviewed dashboard",
   "type": "module",
   "bin": {
@@ -25,7 +25,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "open": "^11.0.2",
-    "osv-ui": "1.2.0"
+    "osv-ui": "2.0.0"
   },
   "engines": {
     "node": ">=22.0.0"
